@@ -1,0 +1,45 @@
+{
+  "nodes": [
+    { "id": "OHU-MARKER-48", "brand": "ohuhu", "type": "Product", "name": "Ohuhu Marker Set 48" },
+    { "id": "OHU-BRUSH-NIB", "brand": "ohuhu", "type": "Accessory", "name": "Brush Replacement Nib Pack" },
+    { "id": "OHU-WATERCOLOR-24", "brand": "ohuhu", "type": "Product", "name": "Watercolor Brush Pen Set 24" },
+    { "id": "OHU-WATERCOLOR-PAD", "brand": "ohuhu", "type": "Product", "name": "Ohuhu Watercolor Pad" },
+    { "id": "FEATURE-WATERCOLOR", "brand": "ohuhu", "type": "Feature", "name": "watercolor style" },
+    { "id": "TRB-XSOUND-GO", "brand": "tribit", "type": "Product", "name": "Tribit XSound Go" },
+    { "id": "TRB-STORMBOX", "brand": "tribit", "type": "Product", "name": "Tribit StormBox Mini" }
+  ],
+  "edges": [
+    {
+      "id": "edge-ohuhu-nib",
+      "brand": "ohuhu",
+      "source": "OHU-MARKER-48",
+      "target": "OHU-BRUSH-NIB",
+      "relation": "COMPATIBLE_WITH",
+      "description": "Ohuhu Marker Set 48 is compatible with the Brush Replacement Nib Pack."
+    },
+    {
+      "id": "edge-ohuhu-watercolor-1",
+      "brand": "ohuhu",
+      "source": "FEATURE-WATERCOLOR",
+      "target": "OHU-WATERCOLOR-24",
+      "relation": "MATCHES_FEATURE",
+      "description": "For watercolor style, recommend the Watercolor Brush Pen Set 24."
+    },
+    {
+      "id": "edge-ohuhu-watercolor-2",
+      "brand": "ohuhu",
+      "source": "FEATURE-WATERCOLOR",
+      "target": "OHU-WATERCOLOR-PAD",
+      "relation": "MATCHES_FEATURE",
+      "description": "For watercolor style, recommend the Ohuhu Watercolor Pad."
+    },
+    {
+      "id": "edge-tribit-replace",
+      "brand": "tribit",
+      "source": "TRB-XSOUND-GO",
+      "target": "TRB-STORMBOX",
+      "relation": "REPLACES",
+      "description": "StormBox Mini is the common alternative when customers want a more rugged Tribit speaker."
+    }
+  ]
+}

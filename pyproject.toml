@@ -1,0 +1,10 @@
+[project]
+name = "smart-customer-service-mvp"
+version = "0.1.0"
+description = "A local MVP of a multi-agent intelligent customer service workflow."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

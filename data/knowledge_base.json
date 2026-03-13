@@ -1,0 +1,66 @@
+[
+  {
+    "id": "ohuhu-refund-policy",
+    "brand": "ohuhu",
+    "doc_type": "policy",
+    "title": "Ohuhu refund policy",
+    "content": "Refunds under 50 USD can be auto-approved after order verification. Refunds above 50 USD require manual approval.",
+    "keywords": ["refund", "return", "money back", "50 usd", "manual approval"]
+  },
+  {
+    "id": "ohuhu-delivery-claim",
+    "brand": "ohuhu",
+    "doc_type": "policy",
+    "title": "Ohuhu delivery claim handling",
+    "content": "If tracking shows delivered and proof exists, ask the customer to verify the address, mailbox, neighbors, and reception before opening a claim.",
+    "keywords": ["delivered", "not received", "delivery proof", "claim", "neighbors"]
+  },
+  {
+    "id": "ohuhu-marker-nib",
+    "brand": "ohuhu",
+    "doc_type": "faq",
+    "title": "Ohuhu marker nib compatibility",
+    "content": "The Brush Replacement Nib Pack is compatible with the Ohuhu Marker Set 48 and the Honolulu series.",
+    "keywords": ["nib", "compatible", "marker", "replacement", "honolulu"]
+  },
+  {
+    "id": "ohuhu-watercolor-style",
+    "brand": "ohuhu",
+    "doc_type": "faq",
+    "title": "Ohuhu watercolor recommendation",
+    "content": "For watercolor-style sketching, recommend the Ohuhu Watercolor Pad and the Watercolor Brush Pen Set 24.",
+    "keywords": ["watercolor", "recommend", "style", "brush pen"]
+  },
+  {
+    "id": "tribit-warranty",
+    "brand": "tribit",
+    "doc_type": "policy",
+    "title": "Tribit warranty policy",
+    "content": "Tribit speakers include a 12-month warranty from delivery date for manufacturing defects.",
+    "keywords": ["warranty", "speaker", "12 month", "defect"]
+  },
+  {
+    "id": "tribit-bluetooth-spec",
+    "brand": "tribit",
+    "doc_type": "product_param",
+    "title": "Tribit XSound Go Bluetooth version",
+    "content": "Tribit XSound Go supports Bluetooth 5.3 and stereo pairing.",
+    "keywords": ["bluetooth", "5.3", "xsound go", "stereo pairing"]
+  },
+  {
+    "id": "tribit-exchange-policy",
+    "brand": "tribit",
+    "doc_type": "policy",
+    "title": "Tribit exchange policy",
+    "content": "An exchange can be created only after the target SKU is confirmed in stock.",
+    "keywords": ["exchange", "replace", "stock", "sku"]
+  },
+  {
+    "id": "global-faq-reply-style",
+    "brand": "global",
+    "doc_type": "template",
+    "title": "General support reply guidance",
+    "content": "Use short paragraphs, mention the verified facts first, and end with the next step.",
+    "keywords": ["reply", "guidance", "facts first", "next step"]
+  }
+]
