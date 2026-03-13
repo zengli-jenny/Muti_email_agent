@@ -37,7 +37,7 @@ class AppConfig:
 
     # Service
     service_host: str = "0.0.0.0"
-    service_port: int = 8000
+    service_port: int = 8001
 
     @classmethod
     def from_base_dir(cls, base_dir: Path | None = None) -> "AppConfig":
@@ -70,5 +70,5 @@ class AppConfig:
             max_reflections=int(os.getenv("MAX_REFLECTIONS", "2")),
             # Service
             service_host=os.getenv("SERVICE_HOST", "0.0.0.0"),
-            service_port=int(os.getenv("SERVICE_PORT", "8000")),
+            service_port=int(os.getenv("SERVICE_PORT", "8001")),
         )

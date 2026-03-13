@@ -5,9 +5,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import mimetypes
 import os
 import sys
 from pathlib import Path
+from urllib.parse import unquote
 
 from dotenv import load_dotenv
 
@@ -151,19 +153,84 @@ class LangGraphRequestHandler(BaseHTTPRequestHandler):
     graph = None
     cfg = None
     loop = None
+    _base_dir = Path(__file__).resolve().parent
+
+    # ── CORS helpers ──────────────────────────────
+
+    def _cors_headers(self) -> None:
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def do_OPTIONS(self) -> None:
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self._cors_headers()
+        self.send_header("Access-Control-Max-Age", "86400")
+        self.end_headers()
+
+    # ── GET ────────────────────────────────────────
 
     def do_GET(self) -> None:
-        if self.path == "/health":
+        path = unquote(self.path.split("?")[0])
+
+        # Root → redirect to frontend
+        if path == "/":
+            self.send_response(HTTPStatus.MOVED_PERMANENTLY)
+            self.send_header("Location", "/frontend/index.html")
+            self.end_headers()
+            return
+
+        # API endpoints
+        if path == "/health":
             self._json({"status": "ok"})
-        elif self.path == "/info":
+            return
+        if path == "/info":
             self._json({
                 "system": "LangGraph Customer Service",
                 "version": "3.0",
                 "llm_model": self.cfg.llm_model if self.cfg else "unknown",
                 "policies": PolicyLoader(self.cfg.policy_dir).list_policies() if self.cfg else [],
             })
-        else:
+            return
+
+        # Static file serving: /frontend/*
+        if path.startswith("/frontend/"):
+            self._serve_static(path)
+            return
+
+        self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+
+    # ── Static file serving ───────────────────────
+
+    def _serve_static(self, url_path: str) -> None:
+        rel = url_path[len("/frontend/"):]
+        if not rel:
+            rel = "index.html"
+        file_path = (self._base_dir / "frontend" / rel).resolve()
+
+        # Prevent directory traversal
+        if not str(file_path).startswith(str(self._base_dir / "frontend")):
+            self._json({"error": "forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        if not file_path.is_file():
             self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            return
+
+        content_type, _ = mimetypes.guess_type(str(file_path))
+        if content_type is None:
+            content_type = "application/octet-stream"
+
+        body = file_path.read_bytes()
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        self._cors_headers()
+        self.end_headers()
+        self.wfile.write(body)
+
+    # ── POST ──────────────────────────────────────
 
     def do_POST(self) -> None:
         if self.path != "/reply":
@@ -205,6 +272,7 @@ class LangGraphRequestHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self._cors_headers()
         self.end_headers()
         self.wfile.write(body)
 
@@ -242,9 +310,11 @@ def main() -> None:
     print("=" * 60)
     print()
     print("  Endpoints:")
-    print("    GET  /health  — Health check")
-    print("    GET  /info    — System information")
-    print("    POST /reply   — Process customer email")
+    print("    GET  /                — Frontend (redirect)")
+    print("    GET  /frontend/*      — Static files")
+    print("    GET  /health          — Health check")
+    print("    GET  /info            — System information")
+    print("    POST /reply           — Process customer email")
     print()
     print("  Press Ctrl+C to stop")
     print("=" * 60)
