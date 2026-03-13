@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import AsyncGenerator
 
 import httpx
 
@@ -43,24 +44,75 @@ class OpenAICompatibleLLM(BaseLLM):
         self,
         messages: list[dict[str, str]],
         temperature: float = 0.1,
+        enable_thinking: bool = False,
     ) -> str:
+        """Return the content string (backward compatible)."""
+        content, _ = await self.chat_with_thinking(messages, temperature, enable_thinking)
+        return content
+
+    async def chat_with_thinking(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.1,
+        enable_thinking: bool = False,
+    ) -> tuple[str, str]:
+        """Return (content, reasoning_content). Non-streaming."""
         client = await self._get_client()
         url = f"{self.base_url}/chat/completions"
         payload = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
+            "enable_thinking": enable_thinking,
         }
 
-        logger.debug("LLM request: model=%s messages=%d", self.model, len(messages))
-
+        logger.debug("LLM request: model=%s messages=%d thinking=%s", self.model, len(messages), enable_thinking)
         resp = await client.post(url, json=payload)
         resp.raise_for_status()
         data = resp.json()
 
-        content = data["choices"][0]["message"]["content"]
-        logger.debug("LLM response: %d chars", len(content))
-        return content
+        msg = data["choices"][0]["message"]
+        content = msg.get("content", "")
+        reasoning = msg.get("reasoning_content", "")
+        logger.debug("LLM response: %d chars, reasoning: %d chars", len(content), len(reasoning))
+        return content, reasoning
+
+    async def chat_stream(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.1,
+        enable_thinking: bool = False,
+    ) -> AsyncGenerator[dict, None]:
+        """Stream tokens. Yields dicts: {type: 'thinking'|'content', text: str}."""
+        client = await self._get_client()
+        url = f"{self.base_url}/chat/completions"
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            "enable_thinking": enable_thinking,
+            "stream": True,
+        }
+
+        async with client.stream("POST", url, json=payload) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line.startswith("data: "):
+                    continue
+                data_str = line[6:].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data_str)
+                except json.JSONDecodeError:
+                    continue
+                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                rc = delta.get("reasoning_content")
+                ct = delta.get("content")
+                if rc is not None:
+                    yield {"type": "thinking", "text": rc}
+                elif ct is not None:
+                    yield {"type": "content", "text": ct}
 
     async def close(self) -> None:
         if self._client and not self._client.is_closed:

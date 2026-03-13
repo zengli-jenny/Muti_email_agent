@@ -29,15 +29,27 @@ from smart_customer_service.prompt_templates import (
 logger = logging.getLogger(__name__)
 
 
-def _trace(node_name: str, detail: str = "") -> dict:
-    return {"node": node_name, "time": time.time(), "detail": detail}
+def _trace(node_name: str, detail: str = "", reasoning: str = "") -> dict:
+    d = {"node": node_name, "time": time.time(), "detail": detail}
+    if reasoning:
+        d["reasoning"] = reasoning
+    return d
 
 
 def _parse_json_from_llm(text: str) -> dict:
     """Extract JSON from LLM output, handling markdown code fences."""
+    # Normalize common LLM quirks before parsing
+    def _normalize(s: str) -> str:
+        # Replace Python-style True/False/None with JSON true/false/null
+        s = re.sub(r'\bTrue\b', 'true', s)
+        s = re.sub(r'\bFalse\b', 'false', s)
+        s = re.sub(r'\bNone\b', 'null', s)
+        return s
+
     # Try to find JSON in code fences first
     m = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
     candidate = m.group(1).strip() if m else text.strip()
+    candidate = _normalize(candidate)
     # Try parsing directly
     try:
         return json.loads(candidate)
@@ -125,6 +137,20 @@ class NodeFactory:
 
     # ── Node 2: router ──
 
+    def _get_node_thinking(self, state: CustomerServiceState, node_name: str) -> bool:
+        """Get enable_thinking setting for a specific node."""
+        cfg = state.get("node_config", {})
+        return cfg.get(node_name, {}).get("enable_thinking", False)
+
+    def _get_temperature(self, state: CustomerServiceState) -> float:
+        """Get temperature from state or default."""
+        return state.get("llm_temperature", 0.1) or 0.1
+
+    def _get_custom_prompt(self, state: CustomerServiceState, node_name: str) -> str:
+        """Get custom prompt override for a specific node, or empty string."""
+        cfg = state.get("node_config", {})
+        return cfg.get(node_name, {}).get("custom_prompt", "")
+
     async def router(self, state: CustomerServiceState) -> dict[str, Any]:
         """Route the email to the correct standard process. 1 LLM call with rule fallback."""
         body = state.get("body", "")
@@ -132,18 +158,21 @@ class NodeFactory:
         subject = state.get("subject", "")
 
         # Try LLM routing
-        system_msg = ROUTER_SYSTEM.format(policy_routing_rules=self.policy_routing_text)
+        custom = self._get_custom_prompt(state, "router")
+        system_msg = custom if custom else ROUTER_SYSTEM.format(policy_routing_rules=self.policy_routing_text)
         user_msg = build_router_user_prompt(body, old_emails, subject)
 
         basic_info = {}
         selected_policy = ""
 
         try:
-            raw = await self.llm.chat(
+            raw, reasoning = await self.llm.chat_with_thinking(
                 [
                     {"role": "system", "content": system_msg},
                     {"role": "user", "content": user_msg},
                 ],
+                temperature=self._get_temperature(state),
+                enable_thinking=self._get_node_thinking(state, "router"),
             )
             parsed = _parse_json_from_llm(raw)
             basic_info = parsed.get("basic_info", {})
@@ -172,7 +201,7 @@ class NodeFactory:
             "basic_info": basic_info,
             "selected_policy": selected_policy,
             "policy_content": policy_content,
-            "trace_log": [_trace("router", f"policy={selected_policy}")],
+            "trace_log": [_trace("router", f"policy={selected_policy}", reasoning=reasoning if reasoning else "")],
         }
 
     # ── Node 3: retriever ──
@@ -201,7 +230,8 @@ class NodeFactory:
         policy_content = state.get("policy_content", "")
         max_iter = state.get("max_react_iterations", 7)
 
-        system_msg = build_solver_system(
+        custom_solver = self._get_custom_prompt(state, "solver")
+        system_msg = custom_solver if custom_solver else build_solver_system(
             skill_raw_markdown=skill.get("raw_markdown", ""),
             policy_content=policy_content,
             max_iterations=max_iter,
@@ -217,11 +247,13 @@ class NodeFactory:
             memory_facts=state.get("memory_facts", []),
         )
 
-        raw = await self.llm.chat(
+        raw, reasoning = await self.llm.chat_with_thinking(
             [
                 {"role": "system", "content": system_msg},
                 {"role": "user", "content": user_msg},
             ],
+            temperature=self._get_temperature(state),
+            enable_thinking=self._get_node_thinking(state, "solver"),
         )
 
         parsed = _parse_json_from_llm(raw)
@@ -232,7 +264,7 @@ class NodeFactory:
         result: dict[str, Any] = {
             "react_iteration": iteration,
             "solver_decision": decision,
-            "trace_log": [_trace("solver", f"iter={iteration} decision={decision}")],
+            "trace_log": [_trace("solver", f"iter={iteration} decision={decision}", reasoning=reasoning)],
         }
 
         if decision == "call_tool":
@@ -306,7 +338,8 @@ class NodeFactory:
                 "trace_log": [_trace("reply_generator", "draft already formatted, skipped LLM")],
             }
 
-        prompt = REPLY_GENERATOR_SYSTEM.format(
+        custom_gen = self._get_custom_prompt(state, "reply_generator")
+        prompt = custom_gen if custom_gen else REPLY_GENERATOR_SYSTEM.format(
             detected_language=lang,
             tone=skill.get("tone", "professional"),
             greeting=skill.get("greeting", "Hello,"),
@@ -314,13 +347,15 @@ class NodeFactory:
             reply_content=draft,
         )
 
-        formatted = await self.llm.chat(
+        formatted, gen_reasoning = await self.llm.chat_with_thinking(
             [{"role": "user", "content": prompt}],
+            temperature=self._get_temperature(state),
+            enable_thinking=self._get_node_thinking(state, "reply_generator"),
         )
 
         return {
             "draft_reply": formatted.strip(),
-            "trace_log": [_trace("reply_generator", "formatted via LLM")],
+            "trace_log": [_trace("reply_generator", "formatted via LLM", reasoning=gen_reasoning)],
         }
 
     # ── Node 7: reviewer ──
@@ -328,15 +363,18 @@ class NodeFactory:
     async def reviewer(self, state: CustomerServiceState) -> dict[str, Any]:
         """Review the draft reply for factual accuracy, compliance, and tone. 1 LLM call."""
         skill = state.get("skill_profile", {})
-        prompt = REVIEWER_SYSTEM.format(
+        custom_rev = self._get_custom_prompt(state, "reviewer")
+        prompt = custom_rev if custom_rev else REVIEWER_SYSTEM.format(
             policy_content=state.get("policy_content", "（无）"),
             skill_profile=skill.get("raw_markdown", "（无）"),
             tool_results=_safe_json(state.get("tool_results", {})),
             draft_reply=state.get("draft_reply", ""),
         )
 
-        raw = await self.llm.chat(
+        raw, rev_reasoning = await self.llm.chat_with_thinking(
             [{"role": "user", "content": prompt}],
+            temperature=self._get_temperature(state),
+            enable_thinking=self._get_node_thinking(state, "reviewer"),
         )
 
         parsed = _parse_json_from_llm(raw)
@@ -346,7 +384,7 @@ class NodeFactory:
         result: dict[str, Any] = {
             "review_passed": passed,
             "review_feedback": feedback,
-            "trace_log": [_trace("reviewer", f"passed={passed}")],
+            "trace_log": [_trace("reviewer", f"passed={passed}", reasoning=rev_reasoning)],
         }
 
         if passed:

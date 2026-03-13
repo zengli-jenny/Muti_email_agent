@@ -107,8 +107,8 @@ async def handle_reply(graph, payload: dict, cfg: AppConfig) -> dict:
         "body": payload.get("body", ""),
         "old_emails": payload.get("old_emails", ""),
         "auto_execute": payload.get("auto_execute", False),
-        "max_react_iterations": cfg.max_react_iterations,
-        "max_reflections": cfg.max_reflections,
+        "max_react_iterations": payload.get("max_react_iterations", cfg.max_react_iterations),
+        "max_reflections": payload.get("max_reflections", cfg.max_reflections),
         "react_iteration": 0,
         "reflection_count": 0,
         "thought_history": [],
@@ -116,6 +116,9 @@ async def handle_reply(graph, payload: dict, cfg: AppConfig) -> dict:
         "trace_log": [],
         "requires_human": False,
         "review_passed": False,
+        # Per-node configuration from frontend
+        "node_config": payload.get("node_config", {}),
+        "llm_temperature": payload.get("llm_temperature", cfg.llm_temperature),
     }
 
     # Run the graph
@@ -136,6 +139,54 @@ async def handle_reply(graph, payload: dict, cfg: AppConfig) -> dict:
         "detected_language": final_state.get("detected_language", "en"),
         "retrieved_knowledge": final_state.get("retrieved_knowledge", "")[:500],
     }
+
+
+async def handle_reply_stream(graph, payload: dict, cfg: AppConfig):
+    """Run the LangGraph workflow with streaming — yields SSE events per node."""
+    initial_state: CustomerServiceState = {
+        "customer_email": payload.get("customer_email", ""),
+        "brand": payload.get("brand", ""),
+        "subject": payload.get("subject", ""),
+        "body": payload.get("body", ""),
+        "old_emails": payload.get("old_emails", ""),
+        "auto_execute": payload.get("auto_execute", False),
+        "max_react_iterations": payload.get("max_react_iterations", cfg.max_react_iterations),
+        "max_reflections": payload.get("max_reflections", cfg.max_reflections),
+        "react_iteration": 0,
+        "reflection_count": 0,
+        "thought_history": [],
+        "tool_results": {},
+        "trace_log": [],
+        "requires_human": False,
+        "review_passed": False,
+        "node_config": payload.get("node_config", {}),
+        "llm_temperature": payload.get("llm_temperature", cfg.llm_temperature),
+    }
+
+    prev_node = None
+    async for chunk in graph.astream(initial_state):
+        for node_name, update in chunk.items():
+            # If switching to a new node, send a start event first
+            if node_name != prev_node:
+                yield {"node": node_name, "status": "start"}
+                prev_node = node_name
+
+            trace_entries = update.get("trace_log", [])
+            event_data = {
+                "node": node_name,
+                "status": "done",
+                "trace": trace_entries,
+            }
+            for key in ("selected_policy", "basic_info", "retrieved_knowledge",
+                        "thought_history", "tool_results", "draft_reply",
+                        "review_passed", "review_feedback", "final_reply",
+                        "requires_human", "human_tasks", "detected_language",
+                        "reply_type", "solver_decision"):
+                if key in update:
+                    event_data[key] = update[key]
+            yield event_data
+
+    yield {"node": "__done__"}
 
 
 # ─────────────────────────────────────────────
@@ -233,7 +284,9 @@ class LangGraphRequestHandler(BaseHTTPRequestHandler):
     # ── POST ──────────────────────────────────────
 
     def do_POST(self) -> None:
-        if self.path != "/reply":
+        path = self.path.split("?")[0]
+
+        if path not in ("/reply", "/reply/stream"):
             self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
             return
 
@@ -252,6 +305,12 @@ class LangGraphRequestHandler(BaseHTTPRequestHandler):
             self._json({"error": f"Missing required fields: {missing}"}, HTTPStatus.BAD_REQUEST)
             return
 
+        if path == "/reply/stream":
+            self._handle_stream(payload)
+        else:
+            self._handle_reply(payload)
+
+    def _handle_reply(self, payload: dict) -> None:
         try:
             future = asyncio.run_coroutine_threadsafe(
                 handle_reply(self.graph, payload, self.cfg), self.loop
@@ -261,8 +320,41 @@ class LangGraphRequestHandler(BaseHTTPRequestHandler):
             logger.exception("Error processing request")
             self._json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
-
         self._json(response)
+
+    def _handle_stream(self, payload: dict) -> None:
+        """SSE streaming — push each node completion as an event."""
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self._cors_headers()
+        self.end_headers()
+
+        import queue
+        q = queue.Queue()
+
+        async def _stream():
+            try:
+                async for event in handle_reply_stream(self.graph, payload, self.cfg):
+                    q.put(event)
+            except Exception as exc:
+                q.put({"node": "__error__", "error": str(exc)})
+            finally:
+                q.put(None)  # sentinel
+
+        asyncio.run_coroutine_threadsafe(_stream(), self.loop)
+
+        while True:
+            item = q.get()
+            if item is None:
+                break
+            try:
+                line = json.dumps(item, ensure_ascii=False)
+                self.wfile.write(f"data: {line}\n\n".encode("utf-8"))
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                break
 
     def log_message(self, format: str, *args: object) -> None:
         logger.info(format, *args)

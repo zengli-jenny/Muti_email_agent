@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart CS — Intelligent Customer Service</title>
+  <title>Smart CS — 智能客服系统</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,28 +34,28 @@
             <rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/>
             <path d="M2 6l7 4.5L16 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>New Reply</span>
+          <span>新建回复</span>
         </button>
         <button class="nav-item" data-view="history">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/>
             <path d="M9 5v4l3 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>History</span>
+          <span>历史记录</span>
         </button>
         <button class="nav-item" data-view="settings">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <circle cx="9" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4"/>
             <path d="M9 2v2M9 14v2M2 9h2M14 9h2M4.2 4.2l1.4 1.4M12.4 12.4l1.4 1.4M13.8 4.2l-1.4 1.4M5.6 12.4l-1.4 1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
           </svg>
-          <span>Settings</span>
+          <span>设置</span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
         <div class="system-status" id="systemStatus">
           <span class="status-dot"></span>
-          <span class="status-text">Connecting...</span>
+          <span class="status-text">连接中...</span>
         </div>
       </div>
     </aside>
@@ -69,7 +69,7 @@
             <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </button>
-        <h1 class="topbar-title" id="viewTitle">New Reply</h1>
+        <h1 class="topbar-title" id="viewTitle">新建回复</h1>
         <div class="topbar-actions">
           <div class="model-badge" id="modelBadge">--</div>
         </div>
@@ -84,18 +84,18 @@
             <!-- Input Panel -->
             <div class="panel input-panel">
               <div class="panel-header">
-                <h2>Customer Email</h2>
-                <span class="panel-hint">Paste the customer's email below</span>
+                <h2>客户邮件</h2>
+                <span class="panel-hint">在下方粘贴客户的邮件内容</span>
               </div>
               <div class="panel-body">
                 <div class="form-grid">
                   <div class="form-row two-col">
                     <div class="form-group">
-                      <label for="customerEmail">Customer Email</label>
+                      <label for="customerEmail">客户邮箱</label>
                       <input type="email" id="customerEmail" placeholder="customer@example.com">
                     </div>
                     <div class="form-group">
-                      <label for="brand">Brand</label>
+                      <label for="brand">品牌</label>
                       <div class="select-wrapper">
                         <select id="brand">
                           <option value="ohuhu">Ohuhu</option>
@@ -105,38 +105,38 @@
                     </div>
                   </div>
                   <div class="form-group">
-                    <label for="subject">Subject</label>
-                    <input type="text" id="subject" placeholder="Email subject line">
+                    <label for="subject">邮件主题</label>
+                    <input type="text" id="subject" placeholder="邮件主题">
                   </div>
                   <div class="form-group flex-grow">
-                    <label for="body">Email Body</label>
-                    <textarea id="body" placeholder="Paste the customer's email content here..."></textarea>
+                    <label for="body">邮件正文</label>
+                    <textarea id="body" placeholder="在此粘贴客户邮件内容..."></textarea>
                   </div>
                   <details class="advanced-section">
-                    <summary>Advanced Options</summary>
+                    <summary>高级选项</summary>
                     <div class="advanced-body">
                       <div class="form-group">
-                        <label for="oldEmails">Previous Email Thread</label>
-                        <textarea id="oldEmails" rows="3" placeholder="Paste previous email exchanges (optional)"></textarea>
+                        <label for="oldEmails">历史邮件记录</label>
+                        <textarea id="oldEmails" rows="3" placeholder="粘贴之前的邮件往来（可选）"></textarea>
                       </div>
                       <label class="checkbox-label">
                         <input type="checkbox" id="autoExecute">
                         <span class="checkmark"></span>
-                        <span>Auto-execute tool calls</span>
+                        <span>自动执行工具调用</span>
                       </label>
                     </div>
                   </details>
                 </div>
               </div>
               <div class="panel-footer">
-                <button class="btn btn-secondary" id="clearBtn">Clear</button>
+                <button class="btn btn-secondary" id="clearBtn">清空</button>
                 <button class="btn btn-primary" id="submitBtn">
-                  <span class="btn-text">Generate Reply</span>
+                  <span class="btn-text">生成回复</span>
                   <span class="btn-loader" hidden>
                     <svg class="spinner" width="18" height="18" viewBox="0 0 18 18">
                       <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="32" stroke-dashoffset="12"/>
                     </svg>
-                    Processing...
+                    处理中...
                   </span>
                 </button>
               </div>
@@ -152,8 +152,8 @@
                     <path d="M6 18l18 11 18-11" stroke="var(--text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
-                <h3>Ready to assist</h3>
-                <p>Fill in the customer email details and click "Generate Reply" to get an AI-powered response.</p>
+                <h3>准备就绪</h3>
+                <p>填写客户邮件信息，点击"生成回复"即可获取 AI 智能回复。</p>
               </div>
 
               <!-- Loading State -->
@@ -162,77 +162,40 @@
                   <div class="thinking-dots">
                     <span></span><span></span><span></span>
                   </div>
-                  <p class="thinking-text">Analyzing email...</p>
+                  <p class="thinking-text">正在分析邮件...</p>
                 </div>
-                <div class="trace-feed" id="traceFeed"></div>
+                <div class="chain-feed" id="chainFeed"></div>
               </div>
 
-              <!-- Result State -->
+              <!-- Result State: Claude-style chain -->
               <div class="result-state" id="resultState" hidden>
-                <!-- Result Header -->
-                <div class="result-header">
-                  <div class="result-meta">
-                    <span class="result-badge policy-badge" id="policyBadge"></span>
-                    <span class="result-badge lang-badge" id="langBadge"></span>
-                    <span class="result-badge review-badge" id="reviewBadge"></span>
-                  </div>
-                  <div class="result-actions">
-                    <button class="icon-btn" id="copyBtn" title="Copy reply">
+                <div class="chain-timeline" id="chainTimeline">
+                  <!-- Dynamically rendered by JS -->
+                </div>
+
+                <!-- Final Reply -->
+                <div class="chain-reply-section">
+                  <div class="chain-reply-header">
+                    <span class="chain-reply-label">最终回复</span>
+                    <div class="chain-reply-badges">
+                      <span class="result-badge policy-badge" id="policyBadge"></span>
+                      <span class="result-badge lang-badge" id="langBadge"></span>
+                      <span class="result-badge review-badge" id="reviewBadge"></span>
+                    </div>
+                    <button class="icon-btn" id="copyBtn" title="复制回复">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
                         <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" stroke-width="1.3"/>
                       </svg>
                     </button>
                   </div>
+                  <div class="chain-reply-content" id="replyContent"></div>
                 </div>
-
-                <!-- Reply Content -->
-                <div class="reply-content" id="replyContent"></div>
 
                 <!-- Human Tasks -->
                 <div class="human-tasks" id="humanTasks" hidden>
-                  <h4>Requires Human Action</h4>
+                  <h4>需要人工处理</h4>
                   <ul id="humanTaskList"></ul>
-                </div>
-
-                <!-- Expandable Details -->
-                <div class="result-details">
-                  <details class="detail-section">
-                    <summary>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      Reasoning Trace
-                    </summary>
-                    <div class="detail-body" id="thoughtTrace"></div>
-                  </details>
-                  <details class="detail-section">
-                    <summary>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      Tool Calls
-                    </summary>
-                    <div class="detail-body" id="toolResults"></div>
-                  </details>
-                  <details class="detail-section">
-                    <summary>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      Extracted Info
-                    </summary>
-                    <div class="detail-body" id="basicInfo"></div>
-                  </details>
-                  <details class="detail-section">
-                    <summary>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M5 3l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      Knowledge Retrieved
-                    </summary>
-                    <div class="detail-body" id="knowledgeInfo"></div>
-                  </details>
                 </div>
               </div>
             </div>
@@ -247,8 +210,8 @@
                 <circle cx="24" cy="24" r="18" stroke="var(--text-tertiary)" stroke-width="2"/>
                 <path d="M24 14v10l7 4" stroke="var(--text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <h3>No history yet</h3>
-              <p>Your generated replies will appear here.</p>
+              <h3>暂无历史记录</h3>
+              <p>生成的回复将显示在这里。</p>
             </div>
             <div class="history-list" id="historyList"></div>
           </div>
@@ -257,25 +220,209 @@
         <!-- Settings View -->
         <section class="view" id="settingsView">
           <div class="settings-container">
+
+            <!-- Agent Pipeline Config -->
+            <div class="settings-card agent-config-card">
+              <div class="card-title-row">
+                <h3>Agent 流水线配置</h3>
+                <span class="card-subtitle">控制每个 LLM 节点的行为参数</span>
+              </div>
+
+              <!-- Global Controls -->
+              <div class="global-controls">
+                <div class="control-row">
+                  <div class="control-label">
+                    <span class="label-main">模型温度</span>
+                    <span class="label-hint">值越低越确定，越高越有创造性</span>
+                  </div>
+                  <div class="slider-group">
+                    <input type="range" id="globalTemperature" min="0" max="1" step="0.05" value="0.1" class="slider">
+                    <span class="slider-value" id="globalTemperatureValue">0.1</span>
+                  </div>
+                </div>
+                <div class="control-row">
+                  <div class="control-label">
+                    <span class="label-main">最大推理轮数</span>
+                    <span class="label-hint">Solver 节点的 ReAct 循环上限</span>
+                  </div>
+                  <div class="slider-group">
+                    <input type="range" id="maxReactIterations" min="1" max="10" step="1" value="7" class="slider">
+                    <span class="slider-value" id="maxReactIterationsValue">7</span>
+                  </div>
+                </div>
+                <div class="control-row">
+                  <div class="control-label">
+                    <span class="label-main">最大反思次数</span>
+                    <span class="label-hint">Reviewer 驳回后重新推理的上限</span>
+                  </div>
+                  <div class="slider-group">
+                    <input type="range" id="maxReflections" min="0" max="5" step="1" value="2" class="slider">
+                    <span class="slider-value" id="maxReflectionsValue">2</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Node Cards -->
+              <div class="node-pipeline">
+                <div class="pipeline-line"></div>
+
+                <!-- Router Node -->
+                <div class="node-card" data-node="router">
+                  <div class="node-header">
+                    <div class="node-icon router-icon">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 2v4M8 10v4M2 8h4M10 8h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/>
+                      </svg>
+                    </div>
+                    <div class="node-info">
+                      <span class="node-name">Router 路由</span>
+                      <span class="node-desc">分析邮件意图，匹配标准流程</span>
+                    </div>
+                    <span class="node-llm-tag">LLM</span>
+                  </div>
+                  <div class="node-controls">
+                    <div class="thinking-toggle">
+                      <span class="toggle-label">深度思考</span>
+                      <label class="toggle-switch">
+                        <input type="checkbox" id="thinkingRouter" class="thinking-checkbox" data-node="router">
+                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Solver Node -->
+                <div class="node-card" data-node="solver">
+                  <div class="node-header">
+                    <div class="node-icon solver-icon">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M3 8a5 5 0 0110 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M8 3v3l2 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="8" cy="13" r="1" fill="currentColor"/>
+                      </svg>
+                    </div>
+                    <div class="node-info">
+                      <span class="node-name">Solver 推理</span>
+                      <span class="node-desc">ReAct 循环，工具调用与决策</span>
+                    </div>
+                    <span class="node-llm-tag">LLM</span>
+                  </div>
+                  <div class="node-controls">
+                    <div class="thinking-toggle">
+                      <span class="toggle-label">深度思考</span>
+                      <label class="toggle-switch">
+                        <input type="checkbox" id="thinkingSolver" class="thinking-checkbox" data-node="solver">
+                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Reply Generator Node -->
+                <div class="node-card" data-node="reply_generator">
+                  <div class="node-header">
+                    <div class="node-icon generator-icon">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M5 7h6M5 9.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                      </svg>
+                    </div>
+                    <div class="node-info">
+                      <span class="node-name">Generator 生成</span>
+                      <span class="node-desc">格式化草稿为专业邮件</span>
+                    </div>
+                    <span class="node-llm-tag node-llm-tag--optional">LLM*</span>
+                  </div>
+                  <div class="node-controls">
+                    <div class="thinking-toggle">
+                      <span class="toggle-label">深度思考</span>
+                      <label class="toggle-switch">
+                        <input type="checkbox" id="thinkingGenerator" class="thinking-checkbox" data-node="reply_generator">
+                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Reviewer Node -->
+                <div class="node-card" data-node="reviewer">
+                  <div class="node-header">
+                    <div class="node-icon reviewer-icon">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 8l3 3 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div class="node-info">
+                      <span class="node-name">Reviewer 审核</span>
+                      <span class="node-desc">事实准确性、合规性、品牌调性</span>
+                    </div>
+                    <span class="node-llm-tag">LLM</span>
+                  </div>
+                  <div class="node-controls">
+                    <div class="thinking-toggle">
+                      <span class="toggle-label">深度思考</span>
+                      <label class="toggle-switch">
+                        <input type="checkbox" id="thinkingReviewer" class="thinking-checkbox" data-node="reviewer">
+                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Connection -->
             <div class="settings-card">
-              <h3>Connection</h3>
+              <h3>连接设置</h3>
               <div class="form-group">
-                <label for="apiUrl">Backend URL</label>
+                <label for="apiUrl">后端地址</label>
                 <input type="text" id="apiUrl" value="http://127.0.0.1:8001">
               </div>
-              <button class="btn btn-secondary" id="testConnection">Test Connection</button>
+              <button class="btn btn-secondary" id="testConnection">测试连接</button>
               <div class="connection-result" id="connectionResult"></div>
             </div>
-            <div class="settings-card">
-              <h3>About</h3>
-              <p class="about-text">Smart CS v3.0 — LangGraph-powered intelligent customer service system for cross-border e-commerce.</p>
-              <div class="about-meta">
-                <span>Architecture: LangGraph StateGraph</span>
-                <span>Nodes: 8 (ReAct Loop)</span>
-                <span>Knowledge Base: 1546 entries</span>
-                <span>Policies: 15 standard processes</span>
+
+            <!-- Prompt Config -->
+            <div class="settings-card prompt-config-card">
+              <div class="card-title-row">
+                <h3>Agent 提示词配置</h3>
+                <span class="card-subtitle">自定义每个 LLM 节点的系统提示词（留空使用默认）</span>
+              </div>
+
+              <div class="prompt-tabs">
+                <button class="prompt-tab active" data-prompt="router">Router</button>
+                <button class="prompt-tab" data-prompt="solver">Solver</button>
+                <button class="prompt-tab" data-prompt="generator">Generator</button>
+                <button class="prompt-tab" data-prompt="reviewer">Reviewer</button>
+              </div>
+
+              <div class="prompt-editor-wrap">
+                <div class="prompt-editor-header">
+                  <span class="prompt-editor-label" id="promptEditorLabel">Router 系统提示词</span>
+                  <button class="btn btn-secondary btn-sm" id="promptResetBtn">恢复默认</button>
+                </div>
+                <textarea class="prompt-editor" id="promptEditor" rows="8" placeholder="留空则使用后端默认提示词..."></textarea>
+                <div class="prompt-editor-footer">
+                  <span class="prompt-char-count" id="promptCharCount">0 字符</span>
+                  <button class="btn btn-primary btn-sm" id="promptSaveBtn">保存</button>
+                </div>
               </div>
             </div>
+
+            <!-- About -->
+            <div class="settings-card">
+              <h3>关于</h3>
+              <p class="about-text">Smart CS v3.0 — 基于 LangGraph 的跨境电商智能客服系统。</p>
+              <div class="about-meta">
+                <span>架构：LangGraph StateGraph</span>
+                <span>节点：8 个（ReAct 循环）</span>
+                <span>知识库：1546 条</span>
+                <span>标准流程：15 个</span>
+              </div>
+            </div>
+
           </div>
         </section>
 

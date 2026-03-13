@@ -66,3 +66,8 @@ class CustomerServiceState(TypedDict, total=False):
 
     # ── Tracing ──
     trace_log: Annotated[list[dict], _append_list]
+
+    # ── Per-node configuration (from frontend) ──
+    node_config: dict  # {router: {enable_thinking}, solver: {...}, ...}
+    llm_temperature: float
+    max_react_iterations_override: int
