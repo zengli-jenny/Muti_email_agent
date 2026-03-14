@@ -549,9 +549,11 @@ function renderResultFinal(data) {
   // Also append a non-collapsible final reply card at the bottom of timeline
   const timeline = $('#chainTimeline');
   if (timeline && data.final_reply) {
-    // Remove any existing final-reply-card
+    // Remove any existing final-reply-card & conversation panel
     const existing = timeline.querySelector('.final-reply-card');
     if (existing) existing.remove();
+    const existingConv = timeline.parentElement.querySelector('.conversation-panel');
+    if (existingConv) existingConv.remove();
 
     const card = document.createElement('div');
     card.className = 'final-reply-card';
@@ -567,6 +569,10 @@ function renderResultFinal(data) {
       <div class="final-reply-card-body">${escapeHtml(data.final_reply)}</div>
     `;
     timeline.appendChild(card);
+
+    // Add conversation panel below the timeline
+    createConversationPanel(timeline.parentElement, data);
+
     timeline.scrollTop = timeline.scrollHeight;
   }
 
@@ -579,6 +585,195 @@ function renderResultFinal(data) {
   } else {
     dom.humanTasks.setAttribute('hidden', '');
   }
+}
+
+// ── Conversation Panel (Human-in-the-loop) ──
+function createConversationPanel(parentEl, data) {
+  const panel = document.createElement('div');
+  panel.className = 'conversation-panel';
+
+  // Determine initial messages based on state
+  const initialMessages = [];
+
+  // If AI generated an email, show it as AI's first message
+  if (data.final_reply) {
+    initialMessages.push({
+      role: 'ai',
+      text: '邮件已生成完毕。如果需要修改或有任何问题，请在下方告诉我。',
+      time: new Date(),
+    });
+  }
+
+  // If there are human tasks or requires_human, AI asks for help
+  if (data.requires_human && data.human_tasks && data.human_tasks.length > 0) {
+    const taskText = data.human_tasks.map(t =>
+      typeof t === 'string' ? t : (t.description || t.task || JSON.stringify(t))
+    ).join('\n• ');
+    initialMessages.push({
+      role: 'ai',
+      text: `我需要您的协助来处理以下事项：\n• ${taskText}\n\n请提供相关信息或指示，我将据此重新生成邮件。`,
+      time: new Date(),
+    });
+  }
+
+  const messagesHtml = initialMessages.map(m => renderConversationMsg(m)).join('');
+
+  panel.innerHTML = `
+    <div class="conversation-panel-header">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="conversation-panel-title">对话协作</span>
+      <span class="conversation-panel-subtitle">人工客服 ↔ AI 助手</span>
+    </div>
+    <div class="conversation-messages">${messagesHtml}</div>
+    <div class="conversation-input-area">
+      <textarea class="conversation-input" rows="1" placeholder="输入修改意见、补充信息或提问...（Enter 发送，Shift+Enter 换行）"></textarea>
+      <button class="conversation-send-btn" title="发送">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M22 2L15 22l-4-9-9-4L22 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  `;
+
+  // Insert after timeline, before reply section
+  const replySection = parentEl.querySelector('.chain-reply-section');
+  if (replySection) {
+    parentEl.insertBefore(panel, replySection);
+  } else {
+    parentEl.appendChild(panel);
+  }
+
+  // Store conversation state on the panel element
+  panel._convData = { ...data, messages: [...initialMessages] };
+
+  // Bind send logic
+  const input = panel.querySelector('.conversation-input');
+  const sendBtn = panel.querySelector('.conversation-send-btn');
+  const messagesContainer = panel.querySelector('.conversation-messages');
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Add human message
+    const humanMsg = { role: 'human', text, time: new Date() };
+    panel._convData.messages.push(humanMsg);
+    messagesContainer.insertAdjacentHTML('beforeend', renderConversationMsg(humanMsg));
+    input.value = '';
+    input.style.height = 'auto';
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Show typing indicator
+    const typingEl = document.createElement('div');
+    typingEl.className = 'conversation-typing';
+    typingEl.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div> AI 正在思考...';
+    messagesContainer.appendChild(typingEl);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    sendBtn.disabled = true;
+
+    try {
+      // Build payload: inject human feedback into the original request
+      const origPayload = {
+        customer_email: dom.customerEmail.value.trim(),
+        brand: dom.brand.value,
+        subject: dom.subject.value.trim(),
+        body: dom.body.value.trim(),
+        old_emails: (dom.oldEmails.value.trim() || '') + `\n\n[人工客服指令]: ${text}`,
+        auto_execute: dom.autoExecute.checked,
+        llm_temperature: parseFloat($('#globalTemperature')?.value || '0.1'),
+        max_react_iterations: parseInt($('#maxReactIterations')?.value || '7'),
+        max_reflections: parseInt($('#maxReflections')?.value || '2'),
+        node_config: getNodeConfig(),
+      };
+
+      const resp = await fetch(`${API_URL()}/reply/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(origPayload),
+      });
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let newFinalReply = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let event;
+          try { event = JSON.parse(line.slice(6)); } catch { continue; }
+          if (event.final_reply) newFinalReply = event.final_reply;
+        }
+      }
+
+      typingEl.remove();
+
+      if (newFinalReply) {
+        // Update the final reply card
+        const replyCard = timeline.querySelector('.final-reply-card');
+        if (replyCard) {
+          replyCard.querySelector('.final-reply-card-body').textContent = newFinalReply;
+        }
+        dom.replyContent.textContent = newFinalReply;
+
+        // AI response in conversation
+        const aiMsg = { role: 'ai', text: '邮件已根据您的反馈重新生成，请查看上方更新后的邮件内容。如需进一步修改，请继续告诉我。', time: new Date() };
+        panel._convData.messages.push(aiMsg);
+        messagesContainer.insertAdjacentHTML('beforeend', renderConversationMsg(aiMsg));
+      } else {
+        const aiMsg = { role: 'ai', text: '已收到您的信息。目前暂无新的邮件生成，请确认您的指令或补充更多信息。', time: new Date() };
+        panel._convData.messages.push(aiMsg);
+        messagesContainer.insertAdjacentHTML('beforeend', renderConversationMsg(aiMsg));
+      }
+    } catch (err) {
+      typingEl.remove();
+      const errMsg = { role: 'ai', text: `处理时出错：${err.message}，请重试。`, time: new Date() };
+      panel._convData.messages.push(errMsg);
+      messagesContainer.insertAdjacentHTML('beforeend', renderConversationMsg(errMsg));
+    } finally {
+      sendBtn.disabled = false;
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // Auto-resize textarea
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+  });
+}
+
+function renderConversationMsg(msg) {
+  const isAI = msg.role === 'ai';
+  const timeStr = msg.time ? new Date(msg.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '';
+  return `
+    <div class="conversation-msg ${isAI ? 'msg-ai' : 'msg-human'}">
+      <div class="conversation-msg-avatar">${isAI ? 'AI' : '客服'}</div>
+      <div>
+        <div class="conversation-msg-bubble">${escapeHtml(msg.text)}</div>
+        <div class="conversation-msg-time">${timeStr}</div>
+      </div>
+    </div>
+  `;
 }
 
 // ── Render Result (Claude-style chain) ────
