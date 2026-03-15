@@ -1393,8 +1393,6 @@ function bindCopyBtn() {
 // ── Clear Button ──────────────────────────
 function bindClearBtn() {
   dom.clearBtn.addEventListener('click', () => {
-    dom.customerEmail.value = '';
-    dom.subject.value = '';
     dom.body.value = '';
     dom.oldEmails.value = '';
     dom.autoExecute.checked = false;
@@ -1458,9 +1456,6 @@ function renderHistory() {
       const id = parseInt(card.dataset.id);
       const entry = state.history.find(h => h.id === id);
       if (!entry) return;
-      dom.customerEmail.value = entry.customerEmail || '';
-      dom.brand.value = entry.brand || 'ohuhu';
-      dom.subject.value = entry.subject || '';
       dom.body.value = entry.body || '';
       renderResult(entry.data);
       showOutput('result');
@@ -1593,14 +1588,24 @@ function switchPromptTab(tab) {
   const editor = $('#promptEditor');
   if (labelEl) labelEl.textContent = cfg.label;
   if (editor) {
-    // Show custom prompt if set, otherwise show default (as placeholder or read-only hint)
     const customVal = state.customPrompts[cfg.key] || '';
-    editor.value = customVal;
-    // If no custom prompt, show default as placeholder
     const defaultPrompt = state.defaultPrompts[cfg.key] || '';
-    editor.placeholder = defaultPrompt
-      ? `默认提示词（只读预览）：\n${defaultPrompt.substring(0, 200)}${defaultPrompt.length > 200 ? '...' : ''}\n\n在此输入自定义提示词以覆盖默认值...`
-      : '留空则使用后端默认提示词...';
+
+    if (customVal) {
+      // Show custom prompt
+      editor.value = customVal;
+      editor.classList.remove('showing-default');
+      editor.placeholder = '输入自定义提示词...';
+    } else if (defaultPrompt) {
+      // Show default prompt as read-only preview in the textarea
+      editor.value = defaultPrompt;
+      editor.classList.add('showing-default');
+      editor.placeholder = '';
+    } else {
+      editor.value = '';
+      editor.classList.remove('showing-default');
+      editor.placeholder = '留空则使用后端默认提示词...';
+    }
     updateCharCount();
   }
 }
@@ -1617,10 +1622,13 @@ function bindPromptConfig() {
     tab.addEventListener('click', () => switchPromptTab(tab.dataset.prompt));
   });
 
-  // Editor input
+  // Editor input — clear "showing-default" on first edit
   const promptEditor = $('#promptEditor');
   if (promptEditor) {
-    promptEditor.addEventListener('input', updateCharCount);
+    promptEditor.addEventListener('input', () => {
+      promptEditor.classList.remove('showing-default');
+      updateCharCount();
+    });
   }
 
   // Save button
@@ -1630,6 +1638,11 @@ function bindPromptConfig() {
       const cfg = PROMPT_NODES[currentPromptTab];
       const editor = $('#promptEditor');
       if (!editor) return;
+      // If still showing default (not edited), don't save
+      if (editor.classList.contains('showing-default')) {
+        toast('当前显示的是默认提示词，修改后才能保存', 'info');
+        return;
+      }
       const val = editor.value.trim();
       if (val) {
         state.customPrompts[cfg.key] = val;
@@ -1648,9 +1661,8 @@ function bindPromptConfig() {
       const cfg = PROMPT_NODES[currentPromptTab];
       delete state.customPrompts[cfg.key];
       localStorage.setItem('smartcs_prompts', JSON.stringify(state.customPrompts));
-      const editor = $('#promptEditor');
-      if (editor) editor.value = '';
-      updateCharCount();
+      // Re-render the tab to show default prompt
+      switchPromptTab(currentPromptTab);
       toast('已恢复默认提示词', 'success');
     });
   }

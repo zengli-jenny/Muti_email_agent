@@ -1267,6 +1267,10 @@ textarea#body { flex: 1; min-height: 120px; }
   color: var(--text-primary);
   background: var(--bg-panel);
   resize: vertical;
+}
+.prompt-editor.showing-default {
+  color: var(--text-tertiary, #888);
+  font-style: italic;
   min-height: 120px;
   outline: none;
   font-family: 'Inter', monospace;
