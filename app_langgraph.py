@@ -243,6 +243,18 @@ class LangGraphRequestHandler(BaseHTTPRequestHandler):
                 "policies": PolicyLoader(self.cfg.policy_dir).list_policies() if self.cfg else [],
             })
             return
+        if path == "/prompts":
+            from smart_customer_service.prompt_templates import (
+                ROUTER_SYSTEM, SOLVER_SYSTEM, REPLY_GENERATOR_SYSTEM, REVIEWER_SYSTEM,
+            )
+            # Build actual prompts with placeholders shown
+            self._json({
+                "router": ROUTER_SYSTEM,
+                "solver": SOLVER_SYSTEM,
+                "reply_generator": REPLY_GENERATOR_SYSTEM,
+                "reviewer": REVIEWER_SYSTEM,
+            })
+            return
 
         # Static file serving: /frontend/*
         if path.startswith("/frontend/"):

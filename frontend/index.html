@@ -173,8 +173,8 @@
                   <!-- Dynamically rendered by JS -->
                 </div>
 
-                <!-- Final Reply -->
-                <div class="chain-reply-section">
+                <!-- Final Reply Card (always visible after generation) -->
+                <div class="chain-reply-section" id="replySection" hidden>
                   <div class="chain-reply-header">
                     <span class="chain-reply-label">最终回复</span>
                     <div class="chain-reply-badges">
@@ -182,17 +182,58 @@
                       <span class="result-badge lang-badge" id="langBadge"></span>
                       <span class="result-badge review-badge" id="reviewBadge"></span>
                     </div>
-                    <button class="icon-btn" id="copyBtn" title="复制回复">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-                        <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" stroke-width="1.3"/>
-                      </svg>
-                    </button>
                   </div>
                   <div class="chain-reply-content" id="replyContent"></div>
+                  <div class="chain-reply-actions">
+                    <button class="btn btn-secondary btn-sm" id="copyBtn" title="复制邮件">
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" stroke-width="1.3"/></svg>
+                      <span>复制邮件</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm" id="approveBtn" title="确认发送">
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 8l3 3 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      <span>确认发送</span>
+                    </button>
+                  </div>
                 </div>
 
-                <!-- Human Tasks -->
+                <!-- FAQ Selection Panel (for AI questions with options) -->
+                <div class="faq-panel" id="faqPanel" hidden>
+                  <div class="faq-panel-header">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M9 9a3 3 0 015.12 2.13c0 2-3.12 2-3.12 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="19" r="0.5" fill="currentColor"/></svg>
+                    <span class="faq-panel-title">AI 需要您的确认</span>
+                    <span class="faq-panel-subtitle">请回答以下问题以继续生成邮件</span>
+                  </div>
+                  <div class="faq-questions" id="faqQuestions">
+                    <!-- Dynamically rendered -->
+                  </div>
+                  <div class="faq-actions">
+                    <textarea class="faq-custom-input" id="faqCustomInput" rows="2" placeholder="补充说明或自定义回答（可选）..."></textarea>
+                    <div class="faq-buttons">
+                      <button class="btn btn-primary btn-sm" id="faqSubmitBtn">确认提交</button>
+                      <button class="btn btn-secondary btn-sm" id="faqSkipBtn">跳过</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Conversation Panel (Human-in-the-loop) -->
+                <div class="conversation-panel" id="conversationPanel" hidden>
+                  <div class="conversation-panel-header">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span class="conversation-panel-title">对话协作</span>
+                    <span class="conversation-panel-subtitle">人工客服 &harr; AI 助手</span>
+                  </div>
+                  <div class="conversation-messages" id="conversationMessages">
+                    <!-- Dynamically rendered -->
+                  </div>
+                  <div class="conversation-input-area">
+                    <textarea class="conversation-input" id="conversationInput" rows="1" placeholder="输入修改意见、补充信息或提问...（Enter 发送）"></textarea>
+                    <button class="conversation-send-btn" id="conversationSendBtn" title="发送">
+                      <svg viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 2L15 22l-4-9-9-4L22 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Human Tasks (legacy) -->
                 <div class="human-tasks" id="humanTasks" hidden>
                   <h4>需要人工处理</h4>
                   <ul id="humanTaskList"></ul>
@@ -221,15 +262,17 @@
         <section class="view" id="settingsView">
           <div class="settings-container">
 
-            <!-- Agent Pipeline Config -->
-            <div class="settings-card agent-config-card">
-              <div class="card-title-row">
-                <h3>Agent 流水线配置</h3>
-                <span class="card-subtitle">控制每个 LLM 节点的行为参数</span>
+            <!-- Section: Model Parameters -->
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg>
+                <div>
+                  <h3>模型参数</h3>
+                  <p class="settings-section-desc">控制 LLM 推理行为的全局参数</p>
+                </div>
               </div>
 
-              <!-- Global Controls -->
-              <div class="global-controls">
+              <div class="settings-card">
                 <div class="control-row">
                   <div class="control-label">
                     <span class="label-main">模型温度</span>
@@ -261,165 +304,146 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Node Cards -->
-              <div class="node-pipeline">
-                <div class="pipeline-line"></div>
-
-                <!-- Router Node -->
-                <div class="node-card" data-node="router">
-                  <div class="node-header">
-                    <div class="node-icon router-icon">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M8 2v4M8 10v4M2 8h4M10 8h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                        <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/>
-                      </svg>
-                    </div>
-                    <div class="node-info">
-                      <span class="node-name">Router 路由</span>
-                      <span class="node-desc">分析邮件意图，匹配标准流程</span>
-                    </div>
-                    <span class="node-llm-tag">LLM</span>
-                  </div>
-                  <div class="node-controls">
-                    <div class="thinking-toggle">
-                      <span class="toggle-label">深度思考</span>
-                      <label class="toggle-switch">
-                        <input type="checkbox" id="thinkingRouter" class="thinking-checkbox" data-node="router">
-                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Solver Node -->
-                <div class="node-card" data-node="solver">
-                  <div class="node-header">
-                    <div class="node-icon solver-icon">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M3 8a5 5 0 0110 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                        <path d="M8 3v3l2 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="8" cy="13" r="1" fill="currentColor"/>
-                      </svg>
-                    </div>
-                    <div class="node-info">
-                      <span class="node-name">Solver 推理</span>
-                      <span class="node-desc">ReAct 循环，工具调用与决策</span>
-                    </div>
-                    <span class="node-llm-tag">LLM</span>
-                  </div>
-                  <div class="node-controls">
-                    <div class="thinking-toggle">
-                      <span class="toggle-label">深度思考</span>
-                      <label class="toggle-switch">
-                        <input type="checkbox" id="thinkingSolver" class="thinking-checkbox" data-node="solver">
-                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Reply Generator Node -->
-                <div class="node-card" data-node="reply_generator">
-                  <div class="node-header">
-                    <div class="node-icon generator-icon">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-                        <path d="M5 7h6M5 9.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-                      </svg>
-                    </div>
-                    <div class="node-info">
-                      <span class="node-name">Generator 生成</span>
-                      <span class="node-desc">格式化草稿为专业邮件</span>
-                    </div>
-                    <span class="node-llm-tag node-llm-tag--optional">LLM*</span>
-                  </div>
-                  <div class="node-controls">
-                    <div class="thinking-toggle">
-                      <span class="toggle-label">深度思考</span>
-                      <label class="toggle-switch">
-                        <input type="checkbox" id="thinkingGenerator" class="thinking-checkbox" data-node="reply_generator">
-                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Reviewer Node -->
-                <div class="node-card" data-node="reviewer">
-                  <div class="node-header">
-                    <div class="node-icon reviewer-icon">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M4 8l3 3 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </div>
-                    <div class="node-info">
-                      <span class="node-name">Reviewer 审核</span>
-                      <span class="node-desc">事实准确性、合规性、品牌调性</span>
-                    </div>
-                    <span class="node-llm-tag">LLM</span>
-                  </div>
-                  <div class="node-controls">
-                    <div class="thinking-toggle">
-                      <span class="toggle-label">深度思考</span>
-                      <label class="toggle-switch">
-                        <input type="checkbox" id="thinkingReviewer" class="thinking-checkbox" data-node="reviewer">
-                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
             </div>
 
-            <!-- Connection -->
-            <div class="settings-card">
-              <h3>连接设置</h3>
-              <div class="form-group">
-                <label for="apiUrl">后端地址</label>
-                <input type="text" id="apiUrl" value="http://127.0.0.1:8001">
-              </div>
-              <button class="btn btn-secondary" id="testConnection">测试连接</button>
-              <div class="connection-result" id="connectionResult"></div>
-            </div>
-
-            <!-- Prompt Config -->
-            <div class="settings-card prompt-config-card">
-              <div class="card-title-row">
-                <h3>Agent 提示词配置</h3>
-                <span class="card-subtitle">自定义每个 LLM 节点的系统提示词（留空使用默认）</span>
-              </div>
-
-              <div class="prompt-tabs">
-                <button class="prompt-tab active" data-prompt="router">Router</button>
-                <button class="prompt-tab" data-prompt="solver">Solver</button>
-                <button class="prompt-tab" data-prompt="generator">Generator</button>
-                <button class="prompt-tab" data-prompt="reviewer">Reviewer</button>
-              </div>
-
-              <div class="prompt-editor-wrap">
-                <div class="prompt-editor-header">
-                  <span class="prompt-editor-label" id="promptEditorLabel">Router 系统提示词</span>
-                  <button class="btn btn-secondary btn-sm" id="promptResetBtn">恢复默认</button>
+            <!-- Section: Agent Pipeline -->
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div>
+                  <h3>Agent 流水线</h3>
+                  <p class="settings-section-desc">控制每个节点的深度思考开关</p>
                 </div>
-                <textarea class="prompt-editor" id="promptEditor" rows="8" placeholder="留空则使用后端默认提示词..."></textarea>
-                <div class="prompt-editor-footer">
-                  <span class="prompt-char-count" id="promptCharCount">0 字符</span>
-                  <button class="btn btn-primary btn-sm" id="promptSaveBtn">保存</button>
+              </div>
+
+              <div class="settings-card">
+                <div class="node-pipeline">
+                  <div class="pipeline-line"></div>
+                  <div class="node-card" data-node="router">
+                    <div class="node-header">
+                      <div class="node-icon router-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v4M8 10v4M2 8h4M10 8h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/></svg></div>
+                      <div class="node-info"><span class="node-name">Router 路由</span><span class="node-desc">分析邮件意图，匹配标准流程</span></div>
+                      <span class="node-llm-tag">LLM</span>
+                    </div>
+                    <div class="node-controls">
+                      <div class="thinking-toggle"><span class="toggle-label">深度思考</span><label class="toggle-switch"><input type="checkbox" id="thinkingRouter" class="thinking-checkbox" data-node="router"><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+                    </div>
+                  </div>
+                  <div class="node-card" data-node="solver">
+                    <div class="node-header">
+                      <div class="node-icon solver-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8a5 5 0 0110 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 3v3l2 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="13" r="1" fill="currentColor"/></svg></div>
+                      <div class="node-info"><span class="node-name">Solver 推理</span><span class="node-desc">ReAct 循环，工具调用与决策</span></div>
+                      <span class="node-llm-tag">LLM</span>
+                    </div>
+                    <div class="node-controls">
+                      <div class="thinking-toggle"><span class="toggle-label">深度思考</span><label class="toggle-switch"><input type="checkbox" id="thinkingSolver" class="thinking-checkbox" data-node="solver"><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+                    </div>
+                  </div>
+                  <div class="node-card" data-node="reply_generator">
+                    <div class="node-header">
+                      <div class="node-icon generator-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h6M5 9.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+                      <div class="node-info"><span class="node-name">Generator 生成</span><span class="node-desc">格式化草稿为专业邮件</span></div>
+                      <span class="node-llm-tag node-llm-tag--optional">LLM*</span>
+                    </div>
+                    <div class="node-controls">
+                      <div class="thinking-toggle"><span class="toggle-label">深度思考</span><label class="toggle-switch"><input type="checkbox" id="thinkingGenerator" class="thinking-checkbox" data-node="reply_generator"><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+                    </div>
+                  </div>
+                  <div class="node-card" data-node="reviewer">
+                    <div class="node-header">
+                      <div class="node-icon reviewer-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 8l3 3 5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                      <div class="node-info"><span class="node-name">Reviewer 审核</span><span class="node-desc">事实准确性、合规性、品牌调性</span></div>
+                      <span class="node-llm-tag">LLM</span>
+                    </div>
+                    <div class="node-controls">
+                      <div class="thinking-toggle"><span class="toggle-label">深度思考</span><label class="toggle-switch"><input type="checkbox" id="thinkingReviewer" class="thinking-checkbox" data-node="reviewer"><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- About -->
-            <div class="settings-card">
-              <h3>关于</h3>
-              <p class="about-text">Smart CS v3.0 — 基于 LangGraph 的跨境电商智能客服系统。</p>
-              <div class="about-meta">
-                <span>架构：LangGraph StateGraph</span>
-                <span>节点：8 个（ReAct 循环）</span>
-                <span>知识库：1546 条</span>
-                <span>标准流程：15 个</span>
+            <!-- Section: Prompts -->
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="1.8"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                <div>
+                  <h3>Agent 提示词</h3>
+                  <p class="settings-section-desc">查看和自定义每个节点的系统提示词</p>
+                </div>
+              </div>
+
+              <div class="settings-card prompt-config-card">
+                <div class="prompt-tabs">
+                  <button class="prompt-tab active" data-prompt="router">Router</button>
+                  <button class="prompt-tab" data-prompt="solver">Solver</button>
+                  <button class="prompt-tab" data-prompt="generator">Generator</button>
+                  <button class="prompt-tab" data-prompt="reviewer">Reviewer</button>
+                </div>
+
+                <!-- Default prompt display (readonly) -->
+                <div class="prompt-default-section" id="promptDefaultSection">
+                  <div class="prompt-default-header">
+                    <span class="prompt-default-label">默认提示词</span>
+                    <span class="prompt-default-status" id="promptDefaultStatus">来自后端</span>
+                  </div>
+                  <pre class="prompt-default-content" id="promptDefaultContent">加载中...</pre>
+                </div>
+
+                <!-- Custom prompt editor -->
+                <div class="prompt-editor-wrap">
+                  <div class="prompt-editor-header">
+                    <span class="prompt-editor-label" id="promptEditorLabel">自定义覆盖（可选）</span>
+                    <button class="btn btn-secondary btn-sm" id="promptResetBtn">清除自定义</button>
+                  </div>
+                  <textarea class="prompt-editor" id="promptEditor" rows="6" placeholder="留空则使用上方默认提示词..."></textarea>
+                  <div class="prompt-editor-footer">
+                    <span class="prompt-char-count" id="promptCharCount">0 字符</span>
+                    <button class="btn btn-primary btn-sm" id="promptSaveBtn">保存覆盖</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: Connection -->
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div>
+                  <h3>连接设置</h3>
+                  <p class="settings-section-desc">配置后端服务地址</p>
+                </div>
+              </div>
+
+              <div class="settings-card">
+                <div class="form-group">
+                  <label for="apiUrl">后端地址</label>
+                  <input type="text" id="apiUrl" value="http://127.0.0.1:8001">
+                </div>
+                <div class="connection-actions">
+                  <button class="btn btn-secondary" id="testConnection">测试连接</button>
+                  <div class="connection-result" id="connectionResult"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: About -->
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                <div>
+                  <h3>关于</h3>
+                  <p class="settings-section-desc">系统信息</p>
+                </div>
+              </div>
+
+              <div class="settings-card about-card">
+                <div class="about-grid">
+                  <div class="about-item"><span class="about-label">系统</span><span class="about-value">Smart CS v3.0</span></div>
+                  <div class="about-item"><span class="about-label">架构</span><span class="about-value">LangGraph StateGraph</span></div>
+                  <div class="about-item"><span class="about-label">节点</span><span class="about-value">8 个（ReAct 循环）</span></div>
+                  <div class="about-item"><span class="about-label">模型</span><span class="about-value" id="aboutModel">--</span></div>
+                </div>
               </div>
             </div>
 
