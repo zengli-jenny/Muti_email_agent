@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Copy, Check, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
+import { toast } from '@/components/Toast'
 
 export function FinalReplyCard() {
   const fullState = useStore((s) => s.fullState)
@@ -11,21 +12,27 @@ export function FinalReplyCard() {
   if (!fullState?.final_reply) return null
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(fullState.final_reply)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(fullState.final_reply)
+      setCopied(true)
+      toast('success', '邮件内容已复制到剪贴板')
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast('error', '复制失败，请手动选择文本复制')
+    }
   }
 
   const handleApprove = () => {
     setApproved(true)
+    toast('success', '邮件已确认，可以发送')
   }
 
   return (
     <div className="bg-bg-panel rounded-2xl border border-border shadow-sm" style={{ animation: 'fade-in 0.4s ease-out' }}>
       {/* Header */}
-      <div className="px-5 py-3 border-b border-border-light flex items-center justify-between">
+      <div className="px-5 py-3 border-b border-border-light flex items-center justify-between flex-wrap gap-2">
         <span className="text-sm font-semibold text-text-primary">最终生成邮件</span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {fullState.selected_policy && (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-node-router/10 text-node-router font-medium">
               {fullState.selected_policy}
@@ -47,7 +54,7 @@ export function FinalReplyCard() {
 
       {/* Body */}
       <div className="px-5 py-4">
-        <pre className="text-sm text-text-primary whitespace-pre-wrap font-sans leading-relaxed">
+        <pre className="text-sm text-text-primary whitespace-pre-wrap font-sans leading-relaxed break-words">
           {fullState.final_reply}
         </pre>
       </div>
@@ -57,6 +64,7 @@ export function FinalReplyCard() {
         <button
           onClick={handleCopy}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:bg-bg-hover transition-all border border-border-light"
+          aria-label="复制邮件内容"
         >
           {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? '已复制' : '复制邮件'}
@@ -70,6 +78,7 @@ export function FinalReplyCard() {
               ? 'bg-success/10 text-success cursor-default'
               : 'bg-accent text-text-inverse hover:bg-accent-hover'
           )}
+          aria-label={approved ? '邮件已确认' : '确认发送邮件'}
         >
           {approved ? <Check className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
           {approved ? '已确认' : '确认发送'}

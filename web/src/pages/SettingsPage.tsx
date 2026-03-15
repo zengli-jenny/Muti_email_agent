@@ -3,6 +3,7 @@ import { Wifi, WifiOff, RotateCcw, Save } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
 import { fetchHealth } from '@/lib/api'
+import { toast } from '@/components/Toast'
 
 const PROMPT_TABS = [
   { key: 'router', label: 'Router' },
@@ -52,8 +53,10 @@ export function SettingsPage() {
     const val = promptValue.trim()
     if (val) {
       setCustomPrompt(activeTab, val)
+      toast('success', `${activeTab} 提示词已保存`)
     } else {
       deleteCustomPrompt(activeTab)
+      toast('info', `${activeTab} 提示词已恢复默认`)
     }
   }
 
@@ -62,6 +65,7 @@ export function SettingsPage() {
     const def = defaultPrompts[activeTab]
     setPromptValue(def || '')
     setIsDefault(true)
+    toast('info', '已恢复默认提示词')
   }
 
   const handleTestConnection = async () => {
@@ -72,19 +76,21 @@ export function SettingsPage() {
       if (data.status === 'ok') {
         setConnectionResult('success')
         setSystemOnline(true)
+        toast('success', '后端连接成功')
       } else {
         throw new Error()
       }
     } catch {
       setConnectionResult('error')
       setSystemOnline(false)
+      toast('error', '连接失败，请检查后端是否运行')
     } finally {
       setConnectionTesting(false)
     }
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6">
+    <div className="h-full overflow-y-auto p-4 md:p-6">
       <div className="max-w-2xl mx-auto space-y-6">
 
         {/* Model Parameters */}
@@ -94,10 +100,11 @@ export function SettingsPage() {
           {/* Temperature */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-medium text-text-secondary">Temperature</label>
+              <label className="text-xs font-medium text-text-secondary" htmlFor="temperature">Temperature</label>
               <span className="text-xs font-mono text-text-tertiary">{settings.temperature}</span>
             </div>
             <input
+              id="temperature"
               type="range" min="0" max="2" step="0.1"
               value={settings.temperature}
               onChange={(e) => updateSettings({ temperature: parseFloat(e.target.value) })}
@@ -108,10 +115,11 @@ export function SettingsPage() {
           {/* Max iterations */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-medium text-text-secondary">最大推理轮次</label>
+              <label className="text-xs font-medium text-text-secondary" htmlFor="maxIterations">最大推理轮次</label>
               <span className="text-xs font-mono text-text-tertiary">{settings.maxReactIterations}</span>
             </div>
             <input
+              id="maxIterations"
               type="range" min="1" max="20" step="1"
               value={settings.maxReactIterations}
               onChange={(e) => updateSettings({ maxReactIterations: parseInt(e.target.value) })}
@@ -122,10 +130,11 @@ export function SettingsPage() {
           {/* Max reflections */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-medium text-text-secondary">最大审核轮次</label>
+              <label className="text-xs font-medium text-text-secondary" htmlFor="maxReflections">最大审核轮次</label>
               <span className="text-xs font-mono text-text-tertiary">{settings.maxReflections}</span>
             </div>
             <input
+              id="maxReflections"
               type="range" min="0" max="5" step="1"
               value={settings.maxReflections}
               onChange={(e) => updateSettings({ maxReflections: parseInt(e.target.value) })}
@@ -154,6 +163,9 @@ export function SettingsPage() {
                   'w-10 h-5.5 rounded-full transition-colors relative',
                   settings.thinking[key] ? 'bg-accent' : 'bg-border'
                 )}
+                role="switch"
+                aria-checked={settings.thinking[key]}
+                aria-label={`${label} 深度思考开关`}
               >
                 <div
                   className={cn(
@@ -170,8 +182,9 @@ export function SettingsPage() {
         <section className="bg-bg-panel rounded-2xl border border-border p-5 space-y-3">
           <h3 className="text-sm font-semibold text-text-primary">连接设置</h3>
           <div>
-            <label className="text-xs font-medium text-text-secondary mb-1.5 block">后端地址</label>
+            <label className="text-xs font-medium text-text-secondary mb-1.5 block" htmlFor="apiUrl">后端地址</label>
             <input
+              id="apiUrl"
               type="text"
               value={settings.apiUrl}
               onChange={(e) => updateSettings({ apiUrl: e.target.value })}
@@ -186,7 +199,7 @@ export function SettingsPage() {
             <button
               onClick={handleTestConnection}
               disabled={connectionTesting}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border-light hover:bg-bg-hover transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border-light hover:bg-bg-hover transition-all disabled:opacity-50"
             >
               {connectionTesting ? '测试中...' : '测试连接'}
             </button>
@@ -209,11 +222,13 @@ export function SettingsPage() {
           <p className="text-xs text-text-tertiary">查看和自定义 LLM 节点的系统提示词</p>
 
           {/* Tabs */}
-          <div className="flex gap-1 bg-bg-secondary rounded-lg p-1">
+          <div className="flex gap-1 bg-bg-secondary rounded-lg p-1" role="tablist">
             {PROMPT_TABS.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
+                role="tab"
+                aria-selected={activeTab === key}
                 className={cn(
                   'flex-1 py-1.5 rounded-md text-xs font-medium transition-all',
                   activeTab === key
@@ -227,7 +242,7 @@ export function SettingsPage() {
           </div>
 
           {/* Editor */}
-          <div className="space-y-2">
+          <div className="space-y-2" role="tabpanel">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-text-secondary">
                 {isDefault ? '默认提示词（只读）' : '自定义提示词'}
@@ -253,6 +268,7 @@ export function SettingsPage() {
                 'resize-y transition-all',
                 isDefault ? 'bg-bg-secondary/50 text-text-tertiary italic' : 'bg-bg-panel'
               )}
+              aria-label={`${activeTab} 提示词编辑器`}
             />
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-text-tertiary">{promptValue.length} 字符</span>
@@ -276,8 +292,8 @@ export function SettingsPage() {
         <section className="bg-bg-panel rounded-2xl border border-border p-5 text-xs text-text-tertiary space-y-1">
           <h3 className="text-sm font-semibold text-text-primary mb-2">关于</h3>
           <p>Smart CS v4.0 — 基于 LangGraph 的跨境电商智能客服系统。</p>
-          <p>架构：React + FastAPI + LangGraph StateGraph</p>
-          <p>前端：React 18 + Tailwind CSS + Radix UI</p>
+          <p>架构：React 19 + FastAPI + LangGraph StateGraph</p>
+          <p>前端：React + TypeScript + Tailwind CSS 4 + Zustand + Radix UI</p>
         </section>
       </div>
     </div>

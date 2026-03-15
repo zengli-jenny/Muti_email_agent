@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { UserCircle, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
@@ -7,25 +7,41 @@ export function HumanAssistDialog() {
   const { humanDialogOpen, humanDialogTasks, closeHumanDialog, humanDialogResolve } = useStore()
   const [input, setInput] = useState('')
 
-  if (!humanDialogOpen) return null
-
   const tasks = humanDialogTasks as Array<string | { task?: string; description?: string; question?: string; options?: string[] }>
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     const val = input.trim() || null
     closeHumanDialog()
     humanDialogResolve?.(val)
     setInput('')
-  }
+  }, [input, closeHumanDialog, humanDialogResolve])
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
     closeHumanDialog()
     humanDialogResolve?.(null)
     setInput('')
-  }
+  }, [closeHumanDialog, humanDialogResolve])
+
+  // Escape key closes dialog
+  useEffect(() => {
+    if (!humanDialogOpen) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleSkip()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [humanDialogOpen, handleSkip])
+
+  if (!humanDialogOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" style={{ animation: 'fade-in 0.2s ease-out' }}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      style={{ animation: 'fade-in 0.2s ease-out' }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="human-dialog-title"
+    >
       <div className="w-full max-w-lg mx-4 bg-bg-panel rounded-2xl shadow-xl border border-border" style={{ animation: 'fade-in 0.3s ease-out' }}>
         {/* Header */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-border-light">
@@ -33,10 +49,10 @@ export function HumanAssistDialog() {
             <UserCircle className="w-5 h-5 text-accent" />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-text-primary">需要人工客服协助</h3>
+            <h3 id="human-dialog-title" className="text-sm font-semibold text-text-primary">需要人工客服协助</h3>
             <p className="text-xs text-text-tertiary mt-0.5">AI 无法独立完成此请求，请提供指导</p>
           </div>
-          <button onClick={handleSkip} className="p-1.5 rounded-lg hover:bg-bg-hover transition-colors">
+          <button onClick={handleSkip} className="p-1.5 rounded-lg hover:bg-bg-hover transition-colors" aria-label="关闭对话框">
             <X className="w-4 h-4 text-text-tertiary" />
           </button>
         </div>
@@ -49,7 +65,7 @@ export function HumanAssistDialog() {
               {tasks.map((t, i) => {
                 const text = typeof t === 'string' ? t : (t.description || t.task || JSON.stringify(t))
                 return (
-                  <li key={i} className="flex items-start gap-2 text-sm text-text-primary">
+                  <li key={`task-${i}`} className="flex items-start gap-2 text-sm text-text-primary">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
                     {text}
                   </li>
@@ -61,8 +77,9 @@ export function HumanAssistDialog() {
 
         {/* Input */}
         <div className="px-6 py-4">
-          <label className="text-xs font-medium text-text-secondary mb-1.5 block">请输入处理指令</label>
+          <label className="text-xs font-medium text-text-secondary mb-1.5 block" htmlFor="human-input">请输入处理指令</label>
           <textarea
+            id="human-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="例如：已确认客户订单，同意全额退款并重新发货..."

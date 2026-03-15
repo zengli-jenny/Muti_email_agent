@@ -61,6 +61,11 @@ interface AppState {
   activeView: View
   setActiveView: (v: View) => void
 
+  // UI
+  sidebarOpen: boolean
+  setSidebarOpen: (v: boolean) => void
+  toggleSidebar: () => void
+
   // System
   systemOnline: boolean
   setSystemOnline: (v: boolean) => void
@@ -88,6 +93,7 @@ interface AppState {
   // History
   history: HistoryEntry[]
   addHistory: (entry: HistoryEntry) => void
+  removeHistory: (id: number) => void
   clearHistory: () => void
 
   // Templates
@@ -143,6 +149,11 @@ export const useStore = create<AppState>()(
       activeView: 'compose',
       setActiveView: (v) => set({ activeView: v }),
 
+      // UI
+      sidebarOpen: true,
+      setSidebarOpen: (v) => set({ sidebarOpen: v }),
+      toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+
       // System
       systemOnline: false,
       setSystemOnline: (v) => set({ systemOnline: v }),
@@ -177,6 +188,10 @@ export const useStore = create<AppState>()(
       addHistory: (entry) =>
         set((s) => ({
           history: [entry, ...s.history].slice(0, 50),
+        })),
+      removeHistory: (id) =>
+        set((s) => ({
+          history: s.history.filter((h) => h.id !== id),
         })),
       clearHistory: () => set({ history: [] }),
 

@@ -6,9 +6,10 @@ import {
 import { cn } from '@/lib/utils'
 import { useStore, type BatchItem } from '@/store/useStore'
 import { getApiUrl, type ReplyPayload } from '@/lib/api'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { toast } from '@/components/Toast'
 
 function parseBatchInput(text: string): BatchItem[] {
-  // Split by double newlines or --- separators
   const blocks = text.split(/\n---\n|\n\n\n/).filter((b) => b.trim())
   return blocks.map((block, i) => ({
     id: `batch-${Date.now()}-${i}`,
@@ -28,13 +29,12 @@ function BatchItemCard({
   onUpdateInstructions: (v: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
     if (item.reply) {
       navigator.clipboard.writeText(item.reply)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+        .then(() => toast('success', '已复制回复内容'))
+        .catch(() => toast('error', '复制失败'))
     }
   }
 
@@ -72,12 +72,12 @@ function BatchItemCard({
             </span>
             <div className="flex items-center gap-1">
               {item.reply && (
-                <button onClick={handleCopy} className="p-1 rounded hover:bg-bg-hover text-text-tertiary hover:text-text-secondary">
-                  {copied ? <CheckCircle className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+                <button onClick={handleCopy} className="p-1 rounded hover:bg-bg-hover text-text-tertiary hover:text-text-secondary" aria-label="复制回复">
+                  <Copy className="w-3.5 h-3.5" />
                 </button>
               )}
               {item.status === 'pending' && (
-                <button onClick={onRemove} className="p-1 rounded hover:bg-bg-hover text-text-tertiary hover:text-error">
+                <button onClick={onRemove} className="p-1 rounded hover:bg-bg-hover text-text-tertiary hover:text-error" aria-label="删除此项">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -120,12 +120,15 @@ export function BatchPage() {
   const { batchItems, setBatchItems, updateBatchItem, clearBatch, settings } = useStore()
   const [inputText, setInputText] = useState('')
   const [isRunning, setIsRunning] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [processedCount, setProcessedCount] = useState(0)
 
   const handleParse = () => {
     if (!inputText.trim()) return
     const items = parseBatchInput(inputText)
     setBatchItems([...batchItems, ...items])
     setInputText('')
+    toast('info', `已添加 ${items.length} 封邮件到队列`)
   }
 
   const handleAddSingle = () => {
@@ -183,18 +186,22 @@ export function BatchPage() {
 
   const handleRunAll = useCallback(async () => {
     setIsRunning(true)
+    setProcessedCount(0)
     const pending = batchItems.filter((b) => b.status === 'pending' && b.body.trim())
 
-    for (const item of pending) {
-      await processOne(item)
+    for (let i = 0; i < pending.length; i++) {
+      await processOne(pending[i])
+      setProcessedCount(i + 1)
     }
 
     setIsRunning(false)
+    toast('success', `批量处理完成，共处理 ${pending.length} 封邮件`)
   }, [batchItems, processOne])
 
   const pendingCount = batchItems.filter((b) => b.status === 'pending' && b.body.trim()).length
   const doneCount = batchItems.filter((b) => b.status === 'done').length
   const errorCount = batchItems.filter((b) => b.status === 'error').length
+  const totalProcessable = batchItems.filter((b) => b.status !== 'pending' || b.body.trim()).length
 
   const handleCopyAll = () => {
     const replies = batchItems
@@ -202,6 +209,14 @@ export function BatchPage() {
       .map((b, i) => `--- 邮件 ${i + 1} ---\n${b.reply}`)
       .join('\n\n')
     navigator.clipboard.writeText(replies)
+      .then(() => toast('success', `已复制 ${doneCount} 封回复`))
+      .catch(() => toast('error', '复制失败'))
+  }
+
+  const handleClearConfirm = () => {
+    clearBatch()
+    setConfirmClear(false)
+    toast('success', '批量队列已清空')
   }
 
   return (
@@ -257,55 +272,67 @@ export function BatchPage() {
 
       {/* Queue controls */}
       {batchItems.length > 0 && (
-        <div className="flex items-center justify-between bg-bg-panel rounded-xl border border-border px-5 py-3 shadow-sm">
-          <div className="flex items-center gap-4 text-xs text-text-tertiary">
-            <span>队列: <strong className="text-text-primary">{batchItems.length}</strong></span>
-            <span>待处理: <strong className="text-text-primary">{pendingCount}</strong></span>
-            <span>完成: <strong className="text-success">{doneCount}</strong></span>
-            {errorCount > 0 && (
-              <span>失败: <strong className="text-error">{errorCount}</strong></span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {doneCount > 0 && (
+        <div className="bg-bg-panel rounded-xl border border-border px-5 py-3 shadow-sm space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-4 text-xs text-text-tertiary">
+              <span>队列: <strong className="text-text-primary">{batchItems.length}</strong></span>
+              <span>待处理: <strong className="text-text-primary">{pendingCount}</strong></span>
+              <span>完成: <strong className="text-success">{doneCount}</strong></span>
+              {errorCount > 0 && (
+                <span>失败: <strong className="text-error">{errorCount}</strong></span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {doneCount > 0 && (
+                <button
+                  onClick={handleCopyAll}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:bg-bg-hover transition-all"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  复制全部结果
+                </button>
+              )}
               <button
-                onClick={handleCopyAll}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:bg-bg-hover transition-all"
+                onClick={() => setConfirmClear(true)}
+                disabled={isRunning}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-text-tertiary hover:text-error hover:bg-bg-hover transition-all disabled:opacity-50"
               >
-                <Copy className="w-3.5 h-3.5" />
-                复制全部结果
+                <Trash2 className="w-3.5 h-3.5" />
+                清空
               </button>
-            )}
-            <button
-              onClick={clearBatch}
-              disabled={isRunning}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-text-tertiary hover:text-error hover:bg-bg-hover transition-all disabled:opacity-50"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              清空
-            </button>
-            <button
-              onClick={handleRunAll}
-              disabled={isRunning || pendingCount === 0}
-              className={cn(
-                'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all',
-                'bg-accent text-text-inverse hover:bg-accent-hover shadow-sm',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
-              )}
-            >
-              {isRunning ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  处理中...
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  开始处理 ({pendingCount})
-                </>
-              )}
-            </button>
+              <button
+                onClick={handleRunAll}
+                disabled={isRunning || pendingCount === 0}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all',
+                  'bg-accent text-text-inverse hover:bg-accent-hover shadow-sm',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              >
+                {isRunning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    处理中 ({processedCount}/{pendingCount + processedCount})
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    开始处理 ({pendingCount})
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+
+          {/* Progress bar during batch run */}
+          {isRunning && totalProcessable > 0 && (
+            <div className="h-1.5 bg-bg-secondary rounded-full overflow-hidden">
+              <div
+                className="h-full bg-accent rounded-full transition-all duration-300"
+                style={{ width: `${(processedCount / (pendingCount + processedCount)) * 100}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -340,6 +367,16 @@ export function BatchPage() {
           处理时间取决于邮件复杂度和 LLM 响应速度。建议每批不超过 20 封邮件。
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmClear}
+        title="清空批量队列"
+        message={`确定要清空全部 ${batchItems.length} 项吗？已完成的结果将丢失。`}
+        confirmLabel="清空全部"
+        variant="danger"
+        onConfirm={handleClearConfirm}
+        onCancel={() => setConfirmClear(false)}
+      />
     </div>
   )
 }

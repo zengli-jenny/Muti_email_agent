@@ -12,14 +12,14 @@ export function ComposePage() {
   const showEmpty = chainNodes.length === 0 && !fullState
 
   return (
-    <div className="h-full flex">
+    <div className="h-full flex flex-col md:flex-row">
       {/* Left: Email Input */}
-      <div className="w-[45%] min-w-[380px] max-w-[560px] border-r border-border-light overflow-y-auto p-5">
+      <div className="md:w-[45%] md:min-w-[380px] md:max-w-[560px] border-b md:border-b-0 md:border-r border-border-light overflow-y-auto p-4 md:p-5">
         <EmailInput />
       </div>
 
       {/* Right: Results */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4">
         {showEmpty ? (
           <div className="h-full flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mb-4">

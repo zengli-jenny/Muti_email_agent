@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import {
   Mail, CheckCircle, AlertTriangle, Clock, TrendingUp,
-  BarChart3, Zap, Globe,
+  BarChart3, Zap, Globe, PenSquare, Layers,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore, type HistoryEntry } from '@/store/useStore'
@@ -17,7 +17,7 @@ interface StatCardProps {
 
 function StatCard({ icon: Icon, label, value, sub, color, bgColor }: StatCardProps) {
   return (
-    <div className="bg-bg-panel rounded-2xl border border-border p-5 flex items-start gap-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-bg-panel rounded-2xl border border-border p-4 md:p-5 flex items-start gap-3 md:gap-4 shadow-sm hover:shadow-md transition-shadow">
       <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', bgColor)}>
         <Icon className={cn('w-5 h-5', color)} />
       </div>
@@ -159,6 +159,7 @@ export function DashboardPage() {
   const history = useStore((s) => s.history)
   const llmModel = useStore((s) => s.llmModel)
   const systemOnline = useStore((s) => s.systemOnline)
+  const setActiveView = useStore((s) => s.setActiveView)
 
   const stats = useMemo(() => {
     const total = history.length
@@ -171,126 +172,154 @@ export function DashboardPage() {
   }, [history])
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6" style={{ animation: 'fade-in 0.3s ease-out' }}>
-      {/* Welcome banner */}
-      <div className="bg-bg-panel rounded-2xl border border-border p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-text-primary">控制台</h1>
-            <p className="text-sm text-text-tertiary mt-1">
-              Smart CS 智能客服系统运行概览
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium',
-              systemOnline
-                ? 'bg-success/10 text-success'
-                : 'bg-error/10 text-error'
-            )}>
-              {systemOnline ? '系统运行中' : '系统离线'}
+    <div className="h-full overflow-y-auto p-4 md:p-6">
+      <div className="max-w-6xl mx-auto space-y-6" style={{ animation: 'fade-in 0.3s ease-out' }}>
+        {/* Welcome banner */}
+        <div className="bg-bg-panel rounded-2xl border border-border p-5 md:p-6 shadow-sm">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-text-primary">控制台</h1>
+              <p className="text-sm text-text-tertiary mt-1">
+                Smart CS 智能客服系统运行概览
+              </p>
             </div>
-            <div className="px-3 py-1.5 rounded-full bg-bg-secondary text-xs font-mono text-text-secondary">
-              {llmModel}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className={cn(
+                'px-3 py-1.5 rounded-full text-xs font-medium',
+                systemOnline
+                  ? 'bg-success/10 text-success'
+                  : 'bg-error/10 text-error'
+              )}>
+                {systemOnline ? '系统运行中' : '系统离线'}
+              </div>
+              <div className="px-3 py-1.5 rounded-full bg-bg-secondary text-xs font-mono text-text-secondary">
+                {llmModel}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick actions */}
+          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border-light">
+            <span className="text-xs text-text-tertiary mr-1">快捷操作:</span>
+            <button
+              onClick={() => setActiveView('compose')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+            >
+              <PenSquare className="w-3.5 h-3.5" />
+              新建回复
+            </button>
+            <button
+              onClick={() => setActiveView('batch')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-bg-secondary text-text-secondary hover:bg-bg-hover transition-colors"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              批量处理
+            </button>
+          </div>
+        </div>
+
+        {/* Stats grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <StatCard
+            icon={Mail}
+            label="处理邮件总数"
+            value={stats.total}
+            sub="全部历史记录"
+            color="text-accent"
+            bgColor="bg-accent-bg"
+          />
+          <StatCard
+            icon={CheckCircle}
+            label="审核通过率"
+            value={stats.total > 0 ? `${Math.round((stats.passed / stats.total) * 100)}%` : '--'}
+            sub={`${stats.passed}/${stats.total} 通过`}
+            color="text-success"
+            bgColor="bg-success/10"
+          />
+          <StatCard
+            icon={AlertTriangle}
+            label="人工介入"
+            value={stats.humanNeeded}
+            sub="需人工处理次数"
+            color="text-warning"
+            bgColor="bg-warning/10"
+          />
+          <StatCard
+            icon={Zap}
+            label="平均推理步数"
+            value={stats.avgThoughts}
+            sub="Solver 思考轮次"
+            color="text-info"
+            bgColor="bg-info/10"
+          />
+        </div>
+
+        {/* Charts row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-bg-panel rounded-2xl border border-border p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-4 h-4 text-accent" />
+              <h3 className="text-sm font-semibold text-text-primary">策略匹配分布</h3>
+            </div>
+            <PolicyChart history={history} />
+          </div>
+
+          <div className="bg-bg-panel rounded-2xl border border-border p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Globe className="w-4 h-4 text-info" />
+              <h3 className="text-sm font-semibold text-text-primary">语言分布</h3>
+            </div>
+            <LanguageDistribution history={history} />
+          </div>
+
+          <div className="bg-bg-panel rounded-2xl border border-border p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-4 h-4 text-success" />
+              <h3 className="text-sm font-semibold text-text-primary">系统状态</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-text-secondary">LLM 模型</span>
+                <span className="text-xs font-mono text-text-tertiary">{llmModel}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-text-secondary">连接状态</span>
+                <span className={cn('text-xs font-medium', systemOnline ? 'text-success' : 'text-error')}>
+                  {systemOnline ? '已连接' : '断开'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-text-secondary">历史记录</span>
+                <span className="text-xs font-mono text-text-tertiary">{history.length}/50</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-text-secondary">审核通过</span>
+                <span className="text-xs font-mono text-text-tertiary">
+                  {stats.passed}/{stats.total}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-4 gap-4">
-        <StatCard
-          icon={Mail}
-          label="处理邮件总数"
-          value={stats.total}
-          sub="全部历史记录"
-          color="text-accent"
-          bgColor="bg-accent-bg"
-        />
-        <StatCard
-          icon={CheckCircle}
-          label="审核通过率"
-          value={stats.total > 0 ? `${Math.round((stats.passed / stats.total) * 100)}%` : '--'}
-          sub={`${stats.passed}/${stats.total} 通过`}
-          color="text-success"
-          bgColor="bg-success/10"
-        />
-        <StatCard
-          icon={AlertTriangle}
-          label="人工介入"
-          value={stats.humanNeeded}
-          sub="需人工处理次数"
-          color="text-warning"
-          bgColor="bg-warning/10"
-        />
-        <StatCard
-          icon={Zap}
-          label="平均推理步数"
-          value={stats.avgThoughts}
-          sub="Solver 思考轮次"
-          color="text-info"
-          bgColor="bg-info/10"
-        />
-      </div>
-
-      {/* Charts row */}
-      <div className="grid grid-cols-3 gap-4">
-        {/* Policy distribution */}
+        {/* Recent activity */}
         <div className="bg-bg-panel rounded-2xl border border-border p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-accent" />
-            <h3 className="text-sm font-semibold text-text-primary">策略匹配分布</h3>
-          </div>
-          <PolicyChart history={history} />
-        </div>
-
-        {/* Language distribution */}
-        <div className="bg-bg-panel rounded-2xl border border-border p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Globe className="w-4 h-4 text-info" />
-            <h3 className="text-sm font-semibold text-text-primary">语言分布</h3>
-          </div>
-          <LanguageDistribution history={history} />
-        </div>
-
-        {/* Performance */}
-        <div className="bg-bg-panel rounded-2xl border border-border p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4 text-success" />
-            <h3 className="text-sm font-semibold text-text-primary">系统状态</h3>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-text-secondary">LLM 模型</span>
-              <span className="text-xs font-mono text-text-tertiary">{llmModel}</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-text-tertiary" />
+              <h3 className="text-sm font-semibold text-text-primary">最近处理记录</h3>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-text-secondary">连接状态</span>
-              <span className={cn('text-xs font-medium', systemOnline ? 'text-success' : 'text-error')}>
-                {systemOnline ? '已连接' : '断开'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-text-secondary">历史记录</span>
-              <span className="text-xs font-mono text-text-tertiary">{history.length}/50</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-text-secondary">审核通过</span>
-              <span className="text-xs font-mono text-text-tertiary">
-                {stats.passed}/{stats.total}
-              </span>
-            </div>
+            {history.length > 0 && (
+              <button
+                onClick={() => setActiveView('history')}
+                className="text-xs text-accent hover:underline"
+              >
+                查看全部
+              </button>
+            )}
           </div>
+          <RecentActivity history={history} />
         </div>
-      </div>
-
-      {/* Recent activity */}
-      <div className="bg-bg-panel rounded-2xl border border-border p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock className="w-4 h-4 text-text-tertiary" />
-          <h3 className="text-sm font-semibold text-text-primary">最近处理记录</h3>
-        </div>
-        <RecentActivity history={history} />
       </div>
     </div>
   )

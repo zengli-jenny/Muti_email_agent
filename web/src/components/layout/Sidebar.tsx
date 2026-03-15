@@ -15,12 +15,23 @@ const NAV_ITEMS: { key: View; label: string; icon: typeof PenSquare; group?: str
 ]
 
 export function Sidebar() {
-  const { activeView, setActiveView, systemOnline } = useStore()
+  const activeView = useStore((s) => s.activeView)
+  const setActiveView = useStore((s) => s.setActiveView)
+  const systemOnline = useStore((s) => s.systemOnline)
+  const setSidebarOpen = useStore((s) => s.setSidebarOpen)
+
+  const handleNav = (key: View) => {
+    setActiveView(key)
+    // Close sidebar on mobile after navigation
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false)
+    }
+  }
 
   let lastGroup: string | undefined
 
   return (
-    <aside className="w-[220px] h-full flex flex-col bg-bg-panel border-r border-border shrink-0">
+    <aside className="w-[220px] h-full flex flex-col bg-bg-panel border-r border-border shrink-0" role="navigation" aria-label="主导航">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 h-14 border-b border-border-light">
         <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
@@ -47,7 +58,8 @@ export function Sidebar() {
                 </div>
               )}
               <button
-                onClick={() => setActiveView(key)}
+                onClick={() => handleNav(key)}
+                aria-current={activeView === key ? 'page' : undefined}
                 className={cn(
                   'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150',
                   activeView === key
@@ -71,6 +83,7 @@ export function Sidebar() {
             window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))
           }}
           className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-text-tertiary hover:text-text-secondary hover:bg-bg-hover transition-all"
+          aria-label="打开快捷键面板"
         >
           <Keyboard className="w-3.5 h-3.5" />
           <span className="flex-1 text-left">快捷键</span>
@@ -78,7 +91,7 @@ export function Sidebar() {
         </button>
 
         {/* Status */}
-        <div className="flex items-center gap-2 px-2 text-xs text-text-tertiary">
+        <div className="flex items-center gap-2 px-2 text-xs text-text-tertiary" role="status" aria-live="polite">
           <span
             className={cn(
               'w-2 h-2 rounded-full',
