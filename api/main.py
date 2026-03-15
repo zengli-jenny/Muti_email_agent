@@ -136,12 +136,17 @@ async def prompts():
 
 def _build_initial_state(req: ReplyRequest) -> CustomerServiceState:
     """Build LangGraph initial state from request."""
+    # Inject user instructions into old_emails so the solver sees them
+    old_emails = req.old_emails
+    if req.instructions:
+        old_emails = (old_emails + "\n\n" if old_emails else "") + f"[客服回复要求]: {req.instructions}"
+
     return {
         "customer_email": req.customer_email,
         "brand": req.brand,
         "subject": req.subject,
         "body": req.body,
-        "old_emails": req.old_emails,
+        "old_emails": old_emails,
         "auto_execute": req.auto_execute,
         "max_react_iterations": req.max_react_iterations,
         "max_reflections": req.max_reflections,

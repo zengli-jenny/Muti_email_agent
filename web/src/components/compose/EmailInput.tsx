@@ -1,11 +1,12 @@
 import { useState, useRef, useCallback } from 'react'
-import { Send, Loader2, Trash2, ChevronDown } from 'lucide-react'
+import { Send, Loader2, Trash2, ChevronDown, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
 import { useSSE } from '@/hooks/useSSE'
 
 export function EmailInput() {
   const [body, setBody] = useState('')
+  const [instructions, setInstructions] = useState('')
   const [oldEmails, setOldEmails] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const isProcessing = useStore((s) => s.isProcessing)
@@ -14,11 +15,12 @@ export function EmailInput() {
 
   const handleSubmit = useCallback(async () => {
     if (!body.trim() || isProcessing) return
-    await startStream(body.trim(), oldEmails.trim())
-  }, [body, oldEmails, isProcessing, startStream])
+    await startStream(body.trim(), oldEmails.trim(), instructions.trim())
+  }, [body, oldEmails, instructions, isProcessing, startStream])
 
   const handleClear = () => {
     setBody('')
+    setInstructions('')
     setOldEmails('')
     textareaRef.current?.focus()
   }
@@ -52,6 +54,26 @@ export function EmailInput() {
             rows={8}
             className={cn(
               'w-full rounded-xl border border-border-light bg-bg-secondary/50 px-4 py-3',
+              'text-sm text-text-primary placeholder:text-text-tertiary',
+              'focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent',
+              'resize-y transition-all duration-150'
+            )}
+          />
+        </div>
+
+        {/* Instructions / Requirements */}
+        <div>
+          <label className="text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" />
+            回复要求（可选）
+          </label>
+          <textarea
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            placeholder="告诉 AI 如何回复，例如：&#10;• 同意退款，提供退货地址&#10;• 语气要温和，表达歉意&#10;• 提供替换产品方案..."
+            rows={3}
+            className={cn(
+              'w-full rounded-xl border border-accent-light bg-accent-bg/30 px-4 py-3',
               'text-sm text-text-primary placeholder:text-text-tertiary',
               'focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent',
               'resize-y transition-all duration-150'

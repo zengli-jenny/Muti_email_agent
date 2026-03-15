@@ -13,6 +13,7 @@ class ReplyRequest(BaseModel):
     brand: str = Field(default="", description="Brand name")
     subject: str = Field(default="", description="Email subject")
     old_emails: str = Field(default="", description="Previous email thread")
+    instructions: str = Field(default="", description="User instructions for reply generation")
     auto_execute: bool = Field(default=False, description="Auto-execute tools")
     llm_temperature: float = Field(default=0.1, ge=0, le=2)
     max_react_iterations: int = Field(default=7, ge=1, le=20)

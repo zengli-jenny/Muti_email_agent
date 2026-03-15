@@ -183,7 +183,7 @@ class NodeFactory:
 
         # Fallback to rule-based router if LLM failed
         if not selected_policy:
-            from smart_customer_service.coordinator_agent import BasicInfo as BI
+            from smart_customer_service.router_agent import BasicInfo as BI
             bi = BI(
                 order_id=basic_info.get("order_id"),
                 has_order=basic_info.get("has_order", False),
@@ -260,6 +260,15 @@ class NodeFactory:
         thought = parsed.get("thought", raw[:200])
         decision = parsed.get("decision", "need_human")
         iteration = state.get("react_iteration", 0) + 1
+
+        # If human instructions were already provided (retry after human input),
+        # do NOT request human intervention again — force generate_reply instead
+        has_human_instruction = "[人工客服指令]" in state.get("old_emails", "") or "[人工客服指令]" in state.get("body", "")
+        if decision == "need_human" and has_human_instruction:
+            decision = "generate_reply"
+            # Use existing reply_content if available, or synthesize from thought
+            if not parsed.get("reply_content"):
+                parsed["reply_content"] = thought
 
         result: dict[str, Any] = {
             "react_iteration": iteration,

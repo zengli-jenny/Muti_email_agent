@@ -4,11 +4,22 @@
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from smart_customer_service.coordinator_agent import BasicInfo
+
+@dataclass
+class BasicInfo:
+    """从邮件中提取的基本信息"""
+    order_id: str | None = None
+    customer_name: str | None = None
+    issue_type: str | None = None
+    order_status: str | None = None
+    platform: str | None = None  # Amazon / 官网
+    country: str | None = None
+    has_order: bool = False
+    is_pre_sales: bool = False
+    is_after_sales: bool = False
 
 
 class RouterAgent:

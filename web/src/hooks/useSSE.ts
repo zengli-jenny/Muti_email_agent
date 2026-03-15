@@ -254,7 +254,7 @@ export function useSSE() {
   )
 
   const startStream = useCallback(
-    async (body: string, oldEmails: string) => {
+    async (body: string, oldEmails: string, instructions?: string) => {
       setIsProcessing(true)
       setChainNodes([])
       setFullState(null)
@@ -273,6 +273,7 @@ export function useSSE() {
       const payload: ReplyPayload = {
         body,
         old_emails: oldEmails,
+        instructions: instructions || '',
         auto_execute: false,
         llm_temperature: settings.temperature,
         max_react_iterations: settings.maxReactIterations,

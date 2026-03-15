@@ -27,6 +27,7 @@ export interface ReplyPayload {
   brand?: string
   subject?: string
   old_emails?: string
+  instructions?: string
   auto_execute?: boolean
   llm_temperature?: number
   max_react_iterations?: number
