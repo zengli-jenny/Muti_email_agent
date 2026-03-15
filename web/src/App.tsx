@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Layout } from '@/components/layout/Layout'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { KeyboardShortcuts } from '@/components/layout/KeyboardShortcuts'
 import { ComposePage } from '@/pages/ComposePage'
 import { DashboardPage } from '@/pages/DashboardPage'
@@ -40,24 +41,27 @@ export default function App() {
       .then((data) => {
         if (data.status === 'ok') setSystemOnline(true)
       })
-      .catch(() => setSystemOnline(false))
+      .catch(() => {
+        setSystemOnline(false)
+        console.warn('Smart CS: backend health check failed')
+      })
 
     fetchInfo()
       .then((info) => setLlmModel(info.llm_model || '--'))
-      .catch(() => {})
+      .catch(() => console.warn('Smart CS: failed to fetch model info'))
 
     fetchPrompts()
       .then((prompts) => setDefaultPrompts(prompts))
-      .catch(() => {})
+      .catch(() => console.warn('Smart CS: failed to fetch default prompts'))
   }, [setSystemOnline, setLlmModel, setDefaultPrompts])
 
   return (
-    <>
+    <ErrorBoundary>
       <Layout>
         <AppContent />
       </Layout>
       <HumanAssistDialog />
       <KeyboardShortcuts />
-    </>
+    </ErrorBoundary>
   )
 }

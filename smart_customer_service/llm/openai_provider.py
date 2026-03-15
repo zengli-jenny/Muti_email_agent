@@ -71,7 +71,11 @@ class OpenAICompatibleLLM(BaseLLM):
         resp.raise_for_status()
         data = resp.json()
 
-        msg = data["choices"][0]["message"]
+        choices = data.get("choices")
+        if not choices or not isinstance(choices, list):
+            logger.error("LLM response missing 'choices': %s", str(data)[:200])
+            return "", ""
+        msg = choices[0].get("message", {})
         content = msg.get("content", "")
         reasoning = msg.get("reasoning_content", "")
         logger.debug("LLM response: %d chars, reasoning: %d chars", len(content), len(reasoning))
@@ -106,7 +110,10 @@ class OpenAICompatibleLLM(BaseLLM):
                     chunk = json.loads(data_str)
                 except json.JSONDecodeError:
                     continue
-                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                choices = chunk.get("choices", [])
+                if not choices:
+                    continue
+                delta = choices[0].get("delta", {})
                 rc = delta.get("reasoning_content")
                 ct = delta.get("content")
                 if rc is not None:

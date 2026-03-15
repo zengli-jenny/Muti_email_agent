@@ -8,12 +8,12 @@ from pydantic import BaseModel, Field
 class ReplyRequest(BaseModel):
     """Request body for /api/reply and /api/reply/stream."""
 
-    body: str = Field(..., min_length=1, description="Email body text")
-    customer_email: str = Field(default="", description="Customer email address")
-    brand: str = Field(default="", description="Brand name")
-    subject: str = Field(default="", description="Email subject")
-    old_emails: str = Field(default="", description="Previous email thread")
-    instructions: str = Field(default="", description="User instructions for reply generation")
+    body: str = Field(..., min_length=1, max_length=50000, description="Email body text")
+    customer_email: str = Field(default="", max_length=200, description="Customer email address")
+    brand: str = Field(default="", max_length=100, description="Brand name")
+    subject: str = Field(default="", max_length=500, description="Email subject")
+    old_emails: str = Field(default="", max_length=100000, description="Previous email thread")
+    instructions: str = Field(default="", max_length=5000, description="User instructions for reply generation")
     auto_execute: bool = Field(default=False, description="Auto-execute tools")
     llm_temperature: float = Field(default=0.1, ge=0, le=2)
     max_react_iterations: int = Field(default=7, ge=1, le=20)

@@ -50,13 +50,6 @@ class RouterAgent:
             policy_routing_file = Path(__file__).parent.parent / "政策路由.md"
 
         self.policy_routing_file = policy_routing_file
-        self._load_routing_rules()
-
-    def _load_routing_rules(self):
-        """加载政策路由规则"""
-        # 这里简化处理,实际可以解析 Markdown 文件
-        # 或者用 LLM 理解路由规则
-        pass
 
     def route(self, email_body: str, basic_info: BasicInfo) -> list[str]:
         """

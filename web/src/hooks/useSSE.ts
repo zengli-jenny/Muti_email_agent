@@ -72,6 +72,11 @@ function buildBlocks(nodeName: string, event: SSEEvent) {
   return blocks
 }
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message
+  return String(err)
+}
+
 export function useSSE() {
   const {
     setIsProcessing, setChainNodes, setFullState,
@@ -84,13 +89,16 @@ export function useSSE() {
 
   const processStream = useCallback(
     async (payload: ReplyPayload, existingNodes: ChainNode[] = [], existingState?: FullState) => {
-      const fullState = existingState || emptyFullState()
+      const fullState: FullState = existingState
+        ? { ...existingState, trace_log: [...existingState.trace_log], thought_history: [...existingState.thought_history], tool_results: { ...existingState.tool_results } }
+        : emptyFullState()
       const nodes = [...existingNodes]
       let solverCount = solverCountRef.current
 
       const abort = new AbortController()
       abortRef.current = abort
 
+      let reader: ReadableStreamDefaultReader<Uint8Array> | null = null
       try {
         const resp = await fetch(`${getApiUrl()}/api/reply/stream`, {
           method: 'POST',
@@ -104,7 +112,11 @@ export function useSSE() {
           throw new Error(err.detail || err.error || `HTTP ${resp.status}`)
         }
 
-        const reader = resp.body!.getReader()
+        if (!resp.body) {
+          throw new Error('Response body is empty')
+        }
+
+        reader = resp.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
 
@@ -139,7 +151,7 @@ export function useSSE() {
               }
 
               const newNode: ChainNode = {
-                id: `${nodeName}-${Date.now()}`,
+                id: `${nodeName}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
                 type: meta.type,
                 title,
                 subtitle: meta.sub,
@@ -151,17 +163,17 @@ export function useSSE() {
               continue
             }
 
-            // Merge into fullState
-            if (event.trace) fullState.trace_log.push(...event.trace)
-            if (event.thought_history) fullState.thought_history.push(...event.thought_history)
-            if (event.tool_results) Object.assign(fullState.tool_results, event.tool_results)
+            // Merge into fullState (immutable updates)
+            if (event.trace) fullState.trace_log = [...fullState.trace_log, ...event.trace]
+            if (event.thought_history) fullState.thought_history = [...fullState.thought_history, ...event.thought_history]
+            if (event.tool_results) fullState.tool_results = { ...fullState.tool_results, ...event.tool_results }
             for (const k of [
               'basic_info', 'selected_policy', 'retrieved_knowledge', 'detected_language',
               'review_passed', 'final_reply', 'requires_human', 'human_tasks', 'reply_type',
               'review_feedback', 'draft_reply', 'solver_decision',
             ] as const) {
               if (k in event) {
-                (fullState as unknown as Record<string, unknown>)[k] = event[k as keyof SSEEvent]
+                ;(fullState as unknown as Record<string, unknown>)[k] = event[k as keyof SSEEvent]
               }
             }
 
@@ -224,6 +236,9 @@ export function useSSE() {
               })
               setChainNodes([...nodes])
 
+              // Close current reader before starting new stream
+              try { reader.cancel() } catch { /* ignore */ }
+              reader = null
               abort.abort()
               solverCountRef.current = solverCount
               await processStream(payload, nodes, fullState)
@@ -232,18 +247,23 @@ export function useSSE() {
           }
         }
       } catch (err) {
-        if ((err as Error).name === 'AbortError') return
+        if (err instanceof Error && err.name === 'AbortError') return
         const errorNode: ChainNode = {
           id: `error-${Date.now()}`,
           type: 'done',
           title: '错误',
-          subtitle: (err as Error).message,
+          subtitle: getErrorMessage(err),
           status: 'error',
           blocks: [],
         }
         nodes.push(errorNode)
         setChainNodes([...nodes])
         throw err
+      } finally {
+        // Ensure reader is always cleaned up
+        if (reader) {
+          try { reader.cancel() } catch { /* ignore */ }
+        }
       }
 
       solverCountRef.current = solverCount

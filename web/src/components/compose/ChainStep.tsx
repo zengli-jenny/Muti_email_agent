@@ -98,7 +98,7 @@ export function ChainStep({ node }: ChainStepProps) {
       {open && hasBlocks && (
         <div className="px-4 pb-3 space-y-2" style={{ animation: 'fade-in 0.2s ease-out' }}>
           {node.blocks.map((block, i) => (
-            <BlockItem key={i} label={block.label} content={block.content} type={block.type} />
+            <BlockItem key={`${block.label}-${i}`} label={block.label} content={block.content} type={block.type} />
           ))}
         </div>
       )}

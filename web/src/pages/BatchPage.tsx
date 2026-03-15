@@ -176,7 +176,7 @@ export function BatchPage() {
     } catch (err) {
       updateBatchItem(item.id, {
         status: 'error',
-        error: (err as Error).message,
+        error: (err instanceof Error ? err.message : String(err)),
       })
     }
   }, [updateBatchItem, settings])

@@ -17,7 +17,7 @@ class ToolRegistry:
         self.tcs = tcs_client
         self._knowledge_search_fn = None  # set externally after init
 
-    def set_knowledge_search(self, fn) -> None:
+    def set_knowledge_search(self, fn: Any) -> None:
         """Inject the knowledge retriever search function."""
         self._knowledge_search_fn = fn
 
@@ -29,6 +29,9 @@ class ToolRegistry:
         try:
             result = await handler(params)
             return {"status": "ok", "data": result}
+        except KeyError as exc:
+            logger.error("Tool %s missing required parameter: %s", name, exc)
+            return {"status": "error", "message": f"缺少必要参数: {exc}"}
         except Exception as exc:
             logger.exception("Tool %s failed", name)
             return {"status": "error", "message": str(exc)}

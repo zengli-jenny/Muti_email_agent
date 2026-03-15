@@ -16,6 +16,13 @@ class SkillProfile:
     raw_markdown: str = ""
 
 
+def _safe_float(value: str, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
 class SkillLoader:
     def __init__(self, skills_dir: Path) -> None:
         self.skills_dir = skills_dir
@@ -61,7 +68,7 @@ class SkillLoader:
             tone=metadata.get("tone", "clear and professional"),
             greeting=metadata.get("greeting", "Hello,"),
             closing=metadata.get("closing", "Best regards,"),
-            approval_threshold_usd=float(metadata.get("approvalthresholdusd", "50")),
+            approval_threshold_usd=_safe_float(metadata.get("approvalthresholdusd", "50"), 50.0),
             rules=sections.get("rules", []),
             reply_style=sections.get("replystyle", []),
             raw_markdown=text,

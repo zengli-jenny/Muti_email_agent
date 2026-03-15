@@ -23,7 +23,11 @@ class KnowledgeRetriever:
     """BM25 + TF-IDF cosine retrieval over the full knowledge base."""
 
     def __init__(self, knowledge_file: Path) -> None:
-        raw = json.loads(knowledge_file.read_text(encoding="utf-8"))
+        try:
+            raw = json.loads(knowledge_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.warning("Failed to load knowledge base from %s: %s", knowledge_file, exc)
+            raw = []
         self.docs: list[dict[str, Any]] = raw if isinstance(raw, list) else []
         logger.info("KnowledgeRetriever loaded %d entries", len(self.docs))
 

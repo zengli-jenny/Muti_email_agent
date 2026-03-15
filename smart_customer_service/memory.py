@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 class MemoryStore:
@@ -29,4 +32,8 @@ class MemoryStore:
         self.memory_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def _read(self) -> dict:
-        return json.loads(self.memory_file.read_text(encoding="utf-8"))
+        try:
+            return json.loads(self.memory_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.warning("Failed to read memory file, returning empty: %s", exc)
+            return {}

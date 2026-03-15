@@ -5,9 +5,15 @@ import { useStore } from '@/store/useStore'
 import { getApiUrl, type ReplyPayload } from '@/lib/api'
 
 interface Message {
+  id: string
   role: 'ai' | 'human'
   text: string
   time: Date
+}
+
+let msgCounter = 0
+function nextMsgId() {
+  return `msg-${++msgCounter}-${Date.now()}`
 }
 
 export function ConversationPanel() {
@@ -24,6 +30,7 @@ export function ConversationPanel() {
     if (!fullState?.final_reply) return
     const initial: Message[] = [
       {
+        id: nextMsgId(),
         role: 'ai',
         text: '邮件已生成完毕。如果需要修改或有任何问题，请在下方告诉我。',
         time: new Date(),
@@ -31,9 +38,14 @@ export function ConversationPanel() {
     ]
     if (fullState.requires_human && fullState.human_tasks?.length > 0) {
       const taskText = fullState.human_tasks
-        .map((t: unknown) => (typeof t === 'string' ? t : ((t as Record<string, string>).description || JSON.stringify(t))))
+        .map((t: unknown) => {
+          if (typeof t === 'string') return t
+          if (t && typeof t === 'object' && 'description' in t) return String((t as Record<string, unknown>).description)
+          return JSON.stringify(t)
+        })
         .join('\n- ')
       initial.push({
+        id: nextMsgId(),
         role: 'ai',
         text: `我需要您的协助来处理以下事项：\n- ${taskText}\n\n请提供相关信息或指示。`,
         time: new Date(),
@@ -52,11 +64,12 @@ export function ConversationPanel() {
     const text = input.trim()
     if (!text || sending) return
 
-    const humanMsg: Message = { role: 'human', text, time: new Date() }
+    const humanMsg: Message = { id: nextMsgId(), role: 'human', text, time: new Date() }
     setMessages((prev) => [...prev, humanMsg])
     setInput('')
     setSending(true)
 
+    let reader: ReadableStreamDefaultReader<Uint8Array> | null = null
     try {
       const payload: ReplyPayload = {
         body: fullState.draft_reply || fullState.final_reply,
@@ -73,8 +86,9 @@ export function ConversationPanel() {
       })
 
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+      if (!resp.body) throw new Error('Response body is empty')
 
-      const reader = resp.body!.getReader()
+      reader = resp.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
       let newReply = ''
@@ -97,12 +111,14 @@ export function ConversationPanel() {
       if (newReply) {
         useStore.getState().setFullState({ ...fullState, final_reply: newReply })
         setMessages((prev) => [...prev, {
+          id: nextMsgId(),
           role: 'ai',
           text: '邮件已根据您的反馈重新生成，请查看上方更新后的邮件内容。',
           time: new Date(),
         }])
       } else {
         setMessages((prev) => [...prev, {
+          id: nextMsgId(),
           role: 'ai',
           text: '已收到您的信息。目前暂无新的邮件生成，请补充更多信息。',
           time: new Date(),
@@ -110,11 +126,15 @@ export function ConversationPanel() {
       }
     } catch (err) {
       setMessages((prev) => [...prev, {
+        id: nextMsgId(),
         role: 'ai',
-        text: `处理时出错：${(err as Error).message}`,
+        text: `处理时出错：${err instanceof Error ? err.message : String(err)}`,
         time: new Date(),
       }])
     } finally {
+      if (reader) {
+        try { reader.cancel() } catch { /* ignore */ }
+      }
       setSending(false)
     }
   }
@@ -132,8 +152,8 @@ export function ConversationPanel() {
 
       {/* Messages */}
       <div ref={messagesRef} className="max-h-80 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg, i) => (
-          <div key={i} className={cn('flex items-start gap-2.5', msg.role === 'human' && 'flex-row-reverse')}>
+        {messages.map((msg) => (
+          <div key={msg.id} className={cn('flex items-start gap-2.5', msg.role === 'human' && 'flex-row-reverse')}>
             <div className={cn(
               'w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
               msg.role === 'ai'

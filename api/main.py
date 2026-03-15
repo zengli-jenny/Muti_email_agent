@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import json
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from sse_starlette.sse import EventSourceResponse
-
-load_dotenv()
 
 from smart_customer_service.config import AppConfig
 from smart_customer_service.graph.builder import build_graph
@@ -41,7 +43,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ─── Bootstrap ───────────────────────────────
 
-def create_dependencies():
+def _create_dependencies():
     """Wire up all dependencies."""
     cfg = AppConfig.from_base_dir()
 
@@ -81,7 +83,27 @@ def create_dependencies():
     return compiled_graph, cfg, llm, tcs_client, policy_loader
 
 
-graph, cfg, llm, tcs_client, policy_loader = create_dependencies()
+# Module-level references populated in lifespan
+graph = None
+cfg = None
+llm = None
+tcs_client = None
+policy_loader = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize dependencies on startup, cleanup on shutdown."""
+    global graph, cfg, llm, tcs_client, policy_loader
+    graph, cfg, llm, tcs_client, policy_loader = _create_dependencies()
+    logger.info("Smart CS dependencies initialized (model=%s)", cfg.llm_model)
+    yield
+    # Cleanup
+    if llm:
+        await llm.close()
+    if tcs_client:
+        await tcs_client.close()
+    logger.info("Smart CS shutdown complete")
 
 
 # ─── FastAPI App ─────────────────────────────
@@ -90,12 +112,13 @@ app = FastAPI(
     title="Smart CS API",
     version="4.0",
     description="LangGraph-powered intelligent customer service API",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -116,16 +139,17 @@ async def health():
 @app.get("/info", response_model=InfoResponse)
 async def info():
     return InfoResponse(
-        llm_model=cfg.llm_model,
-        policies=policy_loader.list_policies(),
+        llm_model=cfg.llm_model if cfg else "unknown",
+        policies=policy_loader.list_policies() if policy_loader else [],
     )
 
+
+from smart_customer_service.prompt_templates import (
+    ROUTER_SYSTEM, SOLVER_SYSTEM, REPLY_GENERATOR_SYSTEM, REVIEWER_SYSTEM,
+)
 
 @app.get("/prompts", response_model=PromptsResponse)
 async def prompts():
-    from smart_customer_service.prompt_templates import (
-        ROUTER_SYSTEM, SOLVER_SYSTEM, REPLY_GENERATOR_SYSTEM, REVIEWER_SYSTEM,
-    )
     return PromptsResponse(
         router=ROUTER_SYSTEM,
         solver=SOLVER_SYSTEM,
@@ -169,9 +193,9 @@ async def reply(req: ReplyRequest):
 
     try:
         final_state = await graph.ainvoke(initial_state)
-    except Exception as exc:
+    except Exception:
         logger.exception("Error processing request")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
     return {
         "final_reply": final_state.get("final_reply", ""),
@@ -227,9 +251,10 @@ async def reply_stream(req: ReplyRequest):
                         "data": json.dumps(event_data, ensure_ascii=False),
                     }
         except Exception as exc:
+            logger.exception("Error during SSE stream")
             yield {
                 "event": "error",
-                "data": json.dumps({"node": "__error__", "error": str(exc)}, ensure_ascii=False),
+                "data": json.dumps({"node": "__error__", "error": "Internal processing error"}, ensure_ascii=False),
             }
 
         yield {
@@ -240,24 +265,18 @@ async def reply_stream(req: ReplyRequest):
     return EventSourceResponse(event_generator())
 
 
-# ─── Backward compatibility: also support /reply/stream ──
+# ─── Backward compatibility ──
 @app.post("/reply/stream")
 async def reply_stream_compat(req: ReplyRequest):
-    """Backward-compatible SSE streaming endpoint."""
     return await reply_stream(req)
 
 
 @app.post("/reply")
 async def reply_compat(req: ReplyRequest):
-    """Backward-compatible reply endpoint."""
     return await reply(req)
 
 
 # ─── Static Files ────────────────────────────
-
-# Serve old frontend for backward compatibility
-if (BASE_DIR / "frontend").is_dir():
-    app.mount("/frontend", StaticFiles(directory=str(BASE_DIR / "frontend")), name="frontend")
 
 # Serve new React frontend
 web_dist = BASE_DIR / "web" / "dist"
@@ -265,18 +284,15 @@ if web_dist.is_dir():
     app.mount("/web", StaticFiles(directory=str(web_dist), html=True), name="web")
 
 
-# ─── Shutdown ────────────────────────────────
-
-@app.on_event("shutdown")
-async def shutdown():
-    await llm.close()
-    await tcs_client.close()
-
-
 # ─── Entry point ─────────────────────────────
 
 def main():
     import uvicorn
+
+    # Eagerly create deps to print config info at startup
+    global graph, cfg, llm, tcs_client, policy_loader
+    if cfg is None:
+        graph, cfg, llm, tcs_client, policy_loader = _create_dependencies()
 
     print("=" * 60)
     print("  Smart CS v4.0 — FastAPI + LangGraph")
