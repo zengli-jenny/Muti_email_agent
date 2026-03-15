@@ -2,6 +2,9 @@ import { useStore } from '@/store/useStore'
 
 const VIEW_TITLES: Record<string, string> = {
   compose: '新建回复',
+  dashboard: '控制台',
+  templates: '邮件模板',
+  batch: '批量处理',
   history: '历史记录',
   settings: '设置',
 }

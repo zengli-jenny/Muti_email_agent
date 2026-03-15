@@ -1,6 +1,10 @@
 import { useEffect } from 'react'
 import { Layout } from '@/components/layout/Layout'
+import { KeyboardShortcuts } from '@/components/layout/KeyboardShortcuts'
 import { ComposePage } from '@/pages/ComposePage'
+import { DashboardPage } from '@/pages/DashboardPage'
+import { TemplatesPage } from '@/pages/TemplatesPage'
+import { BatchPage } from '@/pages/BatchPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { HumanAssistDialog } from '@/components/compose/HumanAssistDialog'
@@ -13,6 +17,12 @@ function AppContent() {
   switch (activeView) {
     case 'compose':
       return <ComposePage />
+    case 'dashboard':
+      return <DashboardPage />
+    case 'templates':
+      return <TemplatesPage />
+    case 'batch':
+      return <BatchPage />
     case 'history':
       return <HistoryPage />
     case 'settings':
@@ -47,6 +57,7 @@ export default function App() {
         <AppContent />
       </Layout>
       <HumanAssistDialog />
+      <KeyboardShortcuts />
     </>
   )
 }

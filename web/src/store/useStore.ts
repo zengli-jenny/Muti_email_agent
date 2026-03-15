@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type View = 'compose' | 'history' | 'settings'
+export type View = 'compose' | 'history' | 'settings' | 'dashboard' | 'templates' | 'batch'
 
 export interface ChainNode {
   id: string
@@ -38,6 +38,24 @@ export interface HistoryEntry {
   data: FullState
 }
 
+export interface EmailTemplate {
+  id: string
+  name: string
+  category: string
+  description: string
+  body: string
+  instructions: string
+}
+
+export interface BatchItem {
+  id: string
+  body: string
+  instructions: string
+  status: 'pending' | 'processing' | 'done' | 'error'
+  reply?: string
+  error?: string
+}
+
 interface AppState {
   // Navigation
   activeView: View
@@ -71,6 +89,18 @@ interface AppState {
   history: HistoryEntry[]
   addHistory: (entry: HistoryEntry) => void
   clearHistory: () => void
+
+  // Templates
+  templates: EmailTemplate[]
+  addTemplate: (t: EmailTemplate) => void
+  removeTemplate: (id: string) => void
+  updateTemplate: (id: string, updates: Partial<EmailTemplate>) => void
+
+  // Batch
+  batchItems: BatchItem[]
+  setBatchItems: (items: BatchItem[]) => void
+  updateBatchItem: (id: string, updates: Partial<BatchItem>) => void
+  clearBatch: () => void
 
   // Settings
   defaultPrompts: Record<string, string>
@@ -150,6 +180,24 @@ export const useStore = create<AppState>()(
         })),
       clearHistory: () => set({ history: [] }),
 
+      // Templates
+      templates: [],
+      addTemplate: (t) => set((s) => ({ templates: [...s.templates, t] })),
+      removeTemplate: (id) => set((s) => ({ templates: s.templates.filter((t) => t.id !== id) })),
+      updateTemplate: (id, updates) =>
+        set((s) => ({
+          templates: s.templates.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+        })),
+
+      // Batch
+      batchItems: [],
+      setBatchItems: (items) => set({ batchItems: items }),
+      updateBatchItem: (id, updates) =>
+        set((s) => ({
+          batchItems: s.batchItems.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+        })),
+      clearBatch: () => set({ batchItems: [] }),
+
       // Settings
       defaultPrompts: {},
       setDefaultPrompts: (p) => set({ defaultPrompts: p }),
@@ -180,6 +228,7 @@ export const useStore = create<AppState>()(
         history: state.history,
         customPrompts: state.customPrompts,
         settings: state.settings,
+        templates: state.templates,
       }),
     }
   )

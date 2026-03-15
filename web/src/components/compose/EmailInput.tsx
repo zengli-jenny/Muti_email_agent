@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Send, Loader2, Trash2, ChevronDown, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
@@ -12,6 +12,20 @@ export function EmailInput() {
   const isProcessing = useStore((s) => s.isProcessing)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { startStream } = useSSE()
+
+  // Pick up template pre-fill from TemplatesPage
+  useEffect(() => {
+    const tBody = sessionStorage.getItem('template-body')
+    const tInstr = sessionStorage.getItem('template-instructions')
+    if (tBody) {
+      setBody(tBody)
+      sessionStorage.removeItem('template-body')
+    }
+    if (tInstr) {
+      setInstructions(tInstr)
+      sessionStorage.removeItem('template-instructions')
+    }
+  }, [])
 
   const handleSubmit = useCallback(async () => {
     if (!body.trim() || isProcessing) return
