@@ -1,0 +1,186 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+export type View = 'compose' | 'history' | 'settings'
+
+export interface ChainNode {
+  id: string
+  type: string
+  title: string
+  subtitle: string
+  status: 'active' | 'done' | 'error'
+  blocks: Array<{ label: string; content: string; type: string }>
+}
+
+export interface FullState {
+  trace_log: unknown[]
+  thought_history: unknown[]
+  tool_results: Record<string, unknown>
+  basic_info: Record<string, unknown>
+  selected_policy: string
+  retrieved_knowledge: string
+  detected_language: string
+  review_passed: boolean
+  final_reply: string
+  requires_human: boolean
+  human_tasks: unknown[]
+  reply_type: string
+  review_feedback: string
+  draft_reply: string
+  solver_decision: string
+}
+
+export interface HistoryEntry {
+  id: number
+  timestamp: number
+  body: string
+  reply: string
+  data: FullState
+}
+
+interface AppState {
+  // Navigation
+  activeView: View
+  setActiveView: (v: View) => void
+
+  // System
+  systemOnline: boolean
+  setSystemOnline: (v: boolean) => void
+  llmModel: string
+  setLlmModel: (v: string) => void
+
+  // Compose
+  isProcessing: boolean
+  setIsProcessing: (v: boolean) => void
+  chainNodes: ChainNode[]
+  setChainNodes: (nodes: ChainNode[]) => void
+  addChainNode: (node: ChainNode) => void
+  updateChainNode: (id: string, updates: Partial<ChainNode>) => void
+  fullState: FullState | null
+  setFullState: (s: FullState | null) => void
+
+  // Human intervention
+  humanDialogOpen: boolean
+  humanDialogTasks: unknown[]
+  openHumanDialog: (tasks: unknown[]) => void
+  closeHumanDialog: () => void
+  humanDialogResolve: ((value: string | null) => void) | null
+  setHumanDialogResolve: (fn: ((value: string | null) => void) | null) => void
+
+  // History
+  history: HistoryEntry[]
+  addHistory: (entry: HistoryEntry) => void
+  clearHistory: () => void
+
+  // Settings
+  defaultPrompts: Record<string, string>
+  setDefaultPrompts: (p: Record<string, string>) => void
+  customPrompts: Record<string, string>
+  setCustomPrompt: (key: string, value: string) => void
+  deleteCustomPrompt: (key: string) => void
+  settings: {
+    temperature: number
+    maxReactIterations: number
+    maxReflections: number
+    thinking: Record<string, boolean>
+    apiUrl: string
+  }
+  updateSettings: (s: Partial<AppState['settings']>) => void
+}
+
+export const emptyFullState = (): FullState => ({
+  trace_log: [],
+  thought_history: [],
+  tool_results: {},
+  basic_info: {},
+  selected_policy: '',
+  retrieved_knowledge: '',
+  detected_language: 'en',
+  review_passed: false,
+  final_reply: '',
+  requires_human: false,
+  human_tasks: [],
+  reply_type: 'NewEmail',
+  review_feedback: '',
+  draft_reply: '',
+  solver_decision: '',
+})
+
+export const useStore = create<AppState>()(
+  persist(
+    (set) => ({
+      // Navigation
+      activeView: 'compose',
+      setActiveView: (v) => set({ activeView: v }),
+
+      // System
+      systemOnline: false,
+      setSystemOnline: (v) => set({ systemOnline: v }),
+      llmModel: '--',
+      setLlmModel: (v) => set({ llmModel: v }),
+
+      // Compose
+      isProcessing: false,
+      setIsProcessing: (v) => set({ isProcessing: v }),
+      chainNodes: [],
+      setChainNodes: (nodes) => set({ chainNodes: nodes }),
+      addChainNode: (node) => set((s) => ({ chainNodes: [...s.chainNodes, node] })),
+      updateChainNode: (id, updates) =>
+        set((s) => ({
+          chainNodes: s.chainNodes.map((n) =>
+            n.id === id ? { ...n, ...updates } : n
+          ),
+        })),
+      fullState: null,
+      setFullState: (s) => set({ fullState: s }),
+
+      // Human intervention
+      humanDialogOpen: false,
+      humanDialogTasks: [],
+      openHumanDialog: (tasks) => set({ humanDialogOpen: true, humanDialogTasks: tasks }),
+      closeHumanDialog: () => set({ humanDialogOpen: false, humanDialogTasks: [] }),
+      humanDialogResolve: null,
+      setHumanDialogResolve: (fn) => set({ humanDialogResolve: fn }),
+
+      // History
+      history: [],
+      addHistory: (entry) =>
+        set((s) => ({
+          history: [entry, ...s.history].slice(0, 50),
+        })),
+      clearHistory: () => set({ history: [] }),
+
+      // Settings
+      defaultPrompts: {},
+      setDefaultPrompts: (p) => set({ defaultPrompts: p }),
+      customPrompts: {},
+      setCustomPrompt: (key, value) =>
+        set((s) => ({ customPrompts: { ...s.customPrompts, [key]: value } })),
+      deleteCustomPrompt: (key) =>
+        set((s) => {
+          const next = { ...s.customPrompts }
+          delete next[key]
+          return { customPrompts: next }
+        }),
+      settings: {
+        temperature: 0.1,
+        maxReactIterations: 7,
+        maxReflections: 2,
+        thinking: { router: true, solver: true, reply_generator: false, reviewer: false },
+        apiUrl: 'http://127.0.0.1:8001',
+      },
+      updateSettings: (s) =>
+        set((state) => ({
+          settings: { ...state.settings, ...s },
+        })),
+    }),
+    {
+      name: 'smartcs-storage',
+      partialize: (state) => ({
+        history: state.history,
+        customPrompts: state.customPrompts,
+        settings: state.settings,
+      }),
+    }
+  )
+)

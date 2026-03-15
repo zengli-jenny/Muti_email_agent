@@ -5,7 +5,10 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
-dist/
 build/
 .idea/
 .vscode/
+
+# Node.js
+node_modules/
+web/node_modules/
