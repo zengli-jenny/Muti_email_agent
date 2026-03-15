@@ -32,9 +32,6 @@ function cacheDom() {
   dom.modelBadge = $('#modelBadge');
   dom.statusDot = $('.status-dot');
   dom.statusText = $('.status-text');
-  dom.customerEmail = $('#customerEmail');
-  dom.brand = $('#brand');
-  dom.subject = $('#subject');
   dom.body = $('#body');
   dom.oldEmails = $('#oldEmails');
   dom.autoExecute = $('#autoExecute');
@@ -417,9 +414,9 @@ function getNodeConfig() {
 // ── Build request payload ─────────────────
 function buildPayload() {
   return {
-    customer_email: dom.customerEmail.value.trim(),
-    brand: dom.brand.value,
-    subject: dom.subject.value.trim(),
+    customer_email: '',
+    brand: '',
+    subject: '',
     body: dom.body.value.trim(),
     old_emails: dom.oldEmails.value.trim(),
     auto_execute: dom.autoExecute.checked,
@@ -520,30 +517,39 @@ async function processSSEStream(reader, timeline, fullState, callbacks) {
       // Human assist check: solver requests human intervention
       if (nodeName === 'solver' && event.solver_decision === 'need_human') {
         const humanInput = await showHumanAssistDialog(event.human_tasks || fullState.human_tasks);
-        if (humanInput) {
-          callbacks.payload.old_emails = (callbacks.payload.old_emails || '') + `\n\n[人工客服指令]: ${humanInput}`;
-          callbacks.payload.body = callbacks.payload.body + `\n\n[人工客服补充]: ${humanInput}`;
 
-          addLiveStep(timeline, 'context', '人工指令已注入', '基于客服指令继续生成', false, [
-            { label: '客服指令', content: `<div class="chain-thought">${escapeHtml(humanInput)}</div>`, type: 'thought' }
+        // Whether user provides input or skips, restart the stream to continue generating
+        const directive = humanInput
+          ? `[人工客服指令]: ${humanInput}`
+          : '[人工客服指令]: 跳过人工处理，请根据已有信息直接生成邮件回复';
+
+        callbacks.payload.old_emails = (callbacks.payload.old_emails || '') + `\n\n${directive}`;
+        if (humanInput) {
+          callbacks.payload.body = callbacks.payload.body + `\n\n[人工客服补充]: ${humanInput}`;
+        }
+
+        addLiveStep(timeline, 'context',
+          humanInput ? '人工指令已注入' : '跳过人工处理',
+          humanInput ? '基于客服指令继续生成' : '根据已有信息直接生成邮件',
+          false, [
+            { label: humanInput ? '客服指令' : '系统指令', content: `<div class="chain-thought">${escapeHtml(directive)}</div>`, type: 'thought' }
           ]);
 
-          reader.cancel();
+        reader.cancel();
 
-          // Restart stream
-          const resp2 = await fetch(`${API_URL()}/reply/stream`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(callbacks.payload),
-          });
+        // Restart stream to continue generating
+        const resp2 = await fetch(`${API_URL()}/reply/stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(callbacks.payload),
+        });
 
-          if (resp2.ok) {
-            const r2 = resp2.body.getReader();
-            callbacks.solverCount = solverCount;
-            await processSSEStream(r2, timeline, fullState, callbacks);
-          }
-          return fullState;
+        if (resp2.ok) {
+          const r2 = resp2.body.getReader();
+          callbacks.solverCount = solverCount;
+          await processSSEStream(r2, timeline, fullState, callbacks);
         }
+        return fullState;
       }
     }
   }

@@ -312,7 +312,7 @@ class LangGraphRequestHandler(BaseHTTPRequestHandler):
             return
 
         # Validate required fields
-        missing = [f for f in ("brand", "body") if not payload.get(f)]
+        missing = [f for f in ("body",) if not payload.get(f)]
         if missing:
             self._json({"error": f"Missing required fields: {missing}"}, HTTPStatus.BAD_REQUEST)
             return
