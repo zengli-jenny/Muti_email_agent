@@ -1,0 +1,66 @@
+{
+  "orders": {
+    "OHU290027": {
+      "brand": "ohuhu",
+      "customer_email": "alice@example.com",
+      "status": "delivered",
+      "currency": "USD",
+      "refund_amount": 32.99,
+      "tracking_number": "TRK1001",
+      "items": [
+        {
+          "sku": "OHU-MARKER-48",
+          "name": "Ohuhu Marker Set 48",
+          "qty": 1
+        }
+      ],
+      "refund_status": "not_processed"
+    },
+    "TRB998877": {
+      "brand": "tribit",
+      "customer_email": "bob@example.com",
+      "status": "shipped",
+      "currency": "USD",
+      "refund_amount": 79.99,
+      "tracking_number": "TRK2001",
+      "items": [
+        {
+          "sku": "TRB-XSOUND-GO",
+          "name": "Tribit XSound Go",
+          "qty": 1
+        }
+      ],
+      "refund_status": "not_processed"
+    }
+  },
+  "logistics": {
+    "TRK1001": {
+      "delivery_status": "delivered",
+      "last_update": "2026-03-10 14:22 UTC",
+      "delivered_at": "2026-03-10",
+      "delivery_proof": "Front door photo with parcel visible."
+    },
+    "TRK2001": {
+      "delivery_status": "in_transit",
+      "last_update": "2026-03-12 09:05 UTC",
+      "delivery_proof": "No delivery proof available."
+    }
+  },
+  "inventory": {
+    "OHU-MARKER-48": {
+      "available": 18
+    },
+    "OHU-BRUSH-NIB": {
+      "available": 120
+    },
+    "OHU-WATERCOLOR-24": {
+      "available": 24
+    },
+    "TRB-STORMBOX": {
+      "available": 6
+    },
+    "TRB-XSOUND-GO": {
+      "available": 0
+    }
+  }
+}

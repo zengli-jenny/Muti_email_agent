@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+build/
+.idea/
+.vscode/
+
+# Node.js
+node_modules/
+web/node_modules/
+web/dist/
