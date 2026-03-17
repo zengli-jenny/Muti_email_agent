@@ -457,6 +457,7 @@ const NAV_LINKS = [
   { id: 'agents', label: '核心 Agent' },
   { id: 'state', label: 'State 图谱' },
   { id: 'tools', label: '工具链路' },
+  { id: 'pipeline', label: '配置链路' },
   { id: 'safety', label: '审核闭环' },
   { id: 'config', label: '配置指南' },
 ]
@@ -498,7 +499,6 @@ export function AboutPage() {
   const [activeArchNode, setActiveArchNode] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState('')
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const isScrollingRef = useRef(false)
 
   // Sequential node highlight on scroll into view
   const archRef = useRef<HTMLDivElement>(null)
@@ -524,79 +524,50 @@ export function AboutPage() {
     return () => observer.disconnect()
   }, [])
 
-  // Track active section via IntersectionObserver
+  // Track active section: whichever section occupies most of the viewport
   useEffect(() => {
     const container = scrollContainerRef.current
     if (!container) return
     const sectionIds = NAV_LINKS.map(l => `about-${l.id}`)
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const id = entry.target.id.replace('about-', '')
-            setActiveSection(id)
-          }
-        })
-      },
-      { root: container, threshold: 0.4 }
-    )
-    sectionIds.forEach((id) => {
-      const el = document.getElementById(id)
-      if (el) observer.observe(el)
-    })
-    return () => observer.disconnect()
-  }, [])
 
-  // Full-page scroll snap: wheel event snaps to next/prev section
-  useEffect(() => {
-    const container = scrollContainerRef.current
-    if (!container) return
-    const allSectionIds = ['about-hero', ...NAV_LINKS.map(l => `about-${l.id}`), 'about-footer']
-
-    const handleWheel = (e: WheelEvent) => {
-      if (isScrollingRef.current) { e.preventDefault(); return }
-      // Only snap on significant scroll
-      if (Math.abs(e.deltaY) < 30) return
-
-      const sections = allSectionIds.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[]
-      const containerTop = container.scrollTop
+    const handleScroll = () => {
       const vh = container.clientHeight
+      const scrollTop = container.scrollTop
+      let best = ''
+      let bestOverlap = 0
 
-      // Find current section index
-      let currentIdx = 0
-      for (let i = 0; i < sections.length; i++) {
-        if (sections[i].offsetTop <= containerTop + vh * 0.4) currentIdx = i
+      for (const id of sectionIds) {
+        const el = document.getElementById(id)
+        if (!el) continue
+        const top = el.offsetTop - scrollTop
+        const bottom = top + el.offsetHeight
+        const visibleTop = Math.max(0, top)
+        const visibleBottom = Math.min(vh, bottom)
+        const overlap = Math.max(0, visibleBottom - visibleTop)
+        if (overlap > bestOverlap) { bestOverlap = overlap; best = id.replace('about-', '') }
       }
-
-      const nextIdx = e.deltaY > 0
-        ? Math.min(currentIdx + 1, sections.length - 1)
-        : Math.max(currentIdx - 1, 0)
-
-      if (nextIdx !== currentIdx) {
-        e.preventDefault()
-        isScrollingRef.current = true
-        sections[nextIdx].scrollIntoView({ behavior: 'smooth', block: 'start' })
-        setTimeout(() => { isScrollingRef.current = false }, 800)
-      }
+      if (best) setActiveSection(best)
     }
 
-    container.addEventListener('wheel', handleWheel, { passive: false })
-    return () => container.removeEventListener('wheel', handleWheel)
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+    return () => container.removeEventListener('scroll', handleScroll)
   }, [])
 
   const scrollTo = useCallback((id: string) => {
     const el = document.getElementById(`about-${id}`)
     if (!el) return
-    isScrollingRef.current = true
     el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    setTimeout(() => { isScrollingRef.current = false }, 800)
   }, [])
 
-  /* shared section class: 100vh full-page, content centered */
-  const sectionCls = 'min-h-[100vh] flex flex-col justify-center px-6 py-16'
+  /* Section classes:
+     - shortSection: content fits in viewport → 100vh centered
+     - longSection: content may overflow → min-h-100vh, top-aligned with padding */
+  const shortSection = 'min-h-[100vh] flex flex-col justify-center px-6 py-16'
+  const longSection = 'min-h-[100vh] px-6 py-20'
 
   return (
-    <div ref={scrollContainerRef} className="about-dark h-full overflow-y-auto bg-[#0F172A] text-gray-100">
+    <div ref={scrollContainerRef} className="about-dark h-full overflow-y-auto bg-[#0F172A] text-gray-100 scroll-smooth">
       <div ref={revealRef}>
         <AboutNavbar onNavigate={scrollTo} activeSection={activeSection} />
 
@@ -627,8 +598,8 @@ export function AboutPage() {
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 about-float"><ArrowDown className="w-5 h-5 text-gray-600" /></div>
         </section>
 
-        {/* ═══ Architecture with State R/W ═══ */}
-        <section id="about-architecture" className={sectionCls} ref={archRef}>
+        {/* ═══ Architecture with State R/W — LONG content ═══ */}
+        <section id="about-architecture" className={longSection} ref={archRef}>
           <div className="max-w-6xl mx-auto w-full">
             <SectionHeading tag="Core Architecture" tagColor="text-blue-400" title="系统架构 · State 状态流转" desc="7 个节点由 LangGraph StateGraph 编排。每个节点的 Read/Write 标注展示了数据在全局 State 中的流转路径。" />
             <div className="about-scale-reveal">
@@ -637,16 +608,16 @@ export function AboutPage() {
           </div>
         </section>
 
-        {/* ═══ Skill System ═══ */}
-        <section id="about-skills" className={cn(sectionCls, 'bg-white/[0.02]')}>
+        {/* ═══ Skill System — LONG content ═══ */}
+        <section id="about-skills" className={cn(longSection, 'bg-white/[0.02]')}>
           <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="The Skill System" tagColor="text-amber-400" title="Skill = 系统的灵魂" desc="Brand Personality Injection — 5 个子模块贯穿 Solver / Generator / Reviewer，修改一个 Markdown 文件即可切换品牌人格。" />
             <SkillSection />
           </div>
         </section>
 
-        {/* ═══ Agent Cards ═══ */}
-        <section id="about-agents" className={sectionCls}>
+        {/* ═══ Agent Cards — short ═══ */}
+        <section id="about-agents" className={shortSection}>
           <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="The Agents" tagColor="text-emerald-400" title="四大核心 Agent" desc="每个 Agent 是 LangGraph 图中的一个节点，由 NodeFactory 通过依赖注入创建。" />
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
@@ -664,40 +635,40 @@ export function AboutPage() {
           </div>
         </section>
 
-        {/* ═══ Module A: Global State Graph ═══ */}
-        <section id="about-state" className={cn(sectionCls, 'bg-white/[0.02]')}>
+        {/* ═══ Module A: Global State Graph — LONG content ═══ */}
+        <section id="about-state" className={cn(longSection, 'bg-white/[0.02]')}>
           <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="Global State Graph" tagColor="text-indigo-400" title="全局 State 状态图谱" desc="全流程可追溯 — CustomerServiceState 中的每个字段都有明确的读写归属，消除黑盒。" />
             <StateGraphSection />
           </div>
         </section>
 
-        {/* ═══ Module B: Tool & RAG Pipeline ═══ */}
-        <section id="about-tools" className={sectionCls}>
+        {/* ═══ Module B: Tool & RAG Pipeline — LONG content ═══ */}
+        <section id="about-tools" className={longSection}>
           <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="Tool & RAG Pipeline" tagColor="text-emerald-400" title="工具调用与知识库检索链路" desc="不幻觉、有依据 — Solver 通过 ReAct 循环按需调用 12 个工具，每个决策都有数据支撑。" />
             <ToolPipelineSection />
           </div>
         </section>
 
-        {/* ═══ Module C: Zero-Code Config ═══ */}
-        <section id="about-pipeline" className={cn(sectionCls, 'bg-white/[0.02]')}>
+        {/* ═══ Module C: Zero-Code Config — short ═══ */}
+        <section id="about-pipeline" className={cn(shortSection, 'bg-white/[0.02]')}>
           <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="Zero-Code Config Pipeline" tagColor="text-blue-400" title="前端配置 → 后端生效链路" desc="运营人员在 Settings 页面修改 Prompt / 参数，实时覆盖后端默认模板，零代码上线。" />
             <ConfigPipelineSection />
           </div>
         </section>
 
-        {/* ═══ Module D: Safety Loop ═══ */}
-        <section id="about-safety" className={sectionCls}>
+        {/* ═══ Module D: Safety Loop — short ═══ */}
+        <section id="about-safety" className={shortSection}>
           <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="The Safety Loop" tagColor="text-pink-400" title="审核反馈闭环" desc="三重审核 + 自动重写 + 人工兜底 — 确保每封邮件都经过事实、合规、品牌调性的严格检查。" />
             <SafetyLoopSection />
           </div>
         </section>
 
-        {/* ═══ Config Guide ═══ */}
-        <section id="about-config" className={cn(sectionCls, 'bg-white/[0.02]')}>
+        {/* ═══ Config Guide — short ═══ */}
+        <section id="about-config" className={cn(shortSection, 'bg-white/[0.02]')}>
           <div className="max-w-3xl mx-auto w-full">
             <SectionHeading tag="Config Guide" tagColor="text-cyan-400" title="为可观测性与可定制性而生" desc="Built for Observability & Hackability" />
             <div className="space-y-3 about-reveal">
