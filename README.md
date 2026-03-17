@@ -8,6 +8,8 @@ LLM：OpenAI 兼容接口（默认 Qwen / Dashscope）
 ```
 
 ---
+## 系统界面视频示例：
+https://github.com/user-attachments/assets/47fa9129-eb8b-4343-a1c4-31e18bac5505
 
 ## 目录
 
@@ -22,9 +24,6 @@ LLM：OpenAI 兼容接口（默认 Qwen / Dashscope）
 - [自定义与扩展](#自定义与扩展)
 
 ---
-
-
-Uploading 屏幕录制 2026-03-17 170045 - Compressed with FlexClip.mp4…
 
 
 ## 系统架构
