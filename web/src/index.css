@@ -92,3 +92,131 @@ body {
   animation: blink-cursor 0.8s step-end infinite;
   font-weight: bold;
 }
+
+/* ── Settings range slider ── */
+.settings-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-border-light);
+  outline: none;
+  cursor: pointer;
+}
+.settings-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.settings-range::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.settings-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+.settings-range:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Prompt syntax highlight overlay ── */
+.prompt-highlight-container {
+  position: relative;
+}
+.prompt-highlight-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.prompt-highlight-textarea {
+  color: transparent;
+  caret-color: var(--color-text-primary);
+  background: transparent;
+  resize: none;
+}
+.prompt-highlight-textarea::selection {
+  background: var(--color-accent-light);
+  color: transparent;
+}
+
+/* ── About page animations ── */
+@keyframes about-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes about-glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+@keyframes about-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes about-dash {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes about-reveal {
+  from { opacity: 0; transform: translateY(32px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes about-scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes about-line-draw {
+  from { stroke-dashoffset: 200; }
+  to { stroke-dashoffset: 0; }
+}
+
+.about-float { animation: about-float 4s ease-in-out infinite; }
+.about-float-delay { animation: about-float 4s ease-in-out 1s infinite; }
+.about-glow { animation: about-glow-pulse 3s ease-in-out infinite; }
+.about-gradient-text {
+  background: linear-gradient(135deg, #60A5FA, #34D399, #F59E0B, #DA7756);
+  background-size: 300% 300%;
+  animation: about-gradient-shift 6s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Scroll-triggered reveal — starts hidden, JS adds .revealed */
+.about-reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: none;
+}
+.about-reveal.revealed {
+  animation: about-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.about-scale-reveal {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: none;
+}
+.about-scale-reveal.revealed {
+  animation: about-scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* About page dark scrollbar */
+.about-dark::-webkit-scrollbar-thumb { background: #374151; }
+.about-dark::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+.about-dark::-webkit-scrollbar-track { background: #0F172A; }

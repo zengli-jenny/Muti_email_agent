@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type View = 'compose' | 'history' | 'settings' | 'dashboard' | 'templates' | 'batch'
+export type View = 'compose' | 'history' | 'settings' | 'dashboard' | 'templates' | 'batch' | 'about'
 
 export interface ChainNode {
   id: string

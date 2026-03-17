@@ -9,6 +9,7 @@ import { TemplatesPage } from '@/pages/TemplatesPage'
 import { BatchPage } from '@/pages/BatchPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { AboutPage } from '@/pages/AboutPage'
 import { useStore } from '@/store/useStore'
 import { fetchHealth, fetchInfo, fetchPrompts } from '@/lib/api'
 
@@ -30,6 +31,8 @@ function AppContent() {
       return <HistoryPage />
     case 'settings':
       return <SettingsPage />
+    case 'about':
+      return <AboutPage />
     default:
       return <ComposePage />
   }

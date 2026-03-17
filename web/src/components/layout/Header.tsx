@@ -9,6 +9,7 @@ const VIEW_TITLES: Record<string, string> = {
   batch: '批量处理',
   history: '历史记录',
   settings: '设置',
+  about: '系统介绍',
 }
 
 export function Header() {
