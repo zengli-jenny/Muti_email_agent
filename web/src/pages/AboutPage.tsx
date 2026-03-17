@@ -268,16 +268,16 @@ function SkillSection() {
 /* ═══ Module A: Global State Graph ═══ */
 function StateGraphSection() {
   const stateFields = [
-    { field: 'customer_email', rw: 'R', agents: ['Load Context'] },
-    { field: 'skill_profile', rw: 'RW', agents: ['Load Context', 'Solver', 'Generator', 'Reviewer'] },
-    { field: 'basic_info', rw: 'W', agents: ['Router'] },
-    { field: 'selected_policy', rw: 'RW', agents: ['Router', 'Solver', 'Reviewer'] },
-    { field: 'thought_history', rw: 'W', agents: ['Solver'] },
-    { field: 'tool_results', rw: 'RW', agents: ['Tool Executor', 'Solver', 'Reviewer'] },
-    { field: 'draft_reply', rw: 'RW', agents: ['Solver', 'Generator'] },
-    { field: 'final_reply', rw: 'W', agents: ['Generator'] },
-    { field: 'review_feedback', rw: 'RW', agents: ['Reviewer', 'Solver'] },
-    { field: 'review_passed', rw: 'W', agents: ['Reviewer'] },
+    { field: 'customer_email', desc: '客户原始邮件内容', rw: 'R', agents: ['Load Context'] },
+    { field: 'skill_profile', desc: '品牌人格配置文件', rw: 'RW', agents: ['Load Context', 'Solver', 'Generator', 'Reviewer'] },
+    { field: 'basic_info', desc: '邮件提取的结构化基础信息', rw: 'W', agents: ['Router'] },
+    { field: 'selected_policy', desc: '匹配的标准处理流程', rw: 'RW', agents: ['Router', 'Solver', 'Reviewer'] },
+    { field: 'thought_history', desc: 'Solver 推理思考历史', rw: 'W', agents: ['Solver'] },
+    { field: 'tool_results', desc: '工具调用 / 知识库检索返回结果', rw: 'RW', agents: ['Tool Executor', 'Solver', 'Reviewer'] },
+    { field: 'draft_reply', desc: 'Solver 生成的回复草稿', rw: 'RW', agents: ['Solver', 'Generator'] },
+    { field: 'final_reply', desc: '格式化后的最终邮件', rw: 'W', agents: ['Generator'] },
+    { field: 'review_feedback', desc: '审核不通过的反馈意见', rw: 'RW', agents: ['Reviewer', 'Solver'] },
+    { field: 'review_passed', desc: '审核是否通过标记', rw: 'W', agents: ['Reviewer'] },
   ]
   return (
     <div className="about-scale-reveal max-w-4xl mx-auto">
@@ -292,13 +292,14 @@ function StateGraphSection() {
         <div className="grid md:grid-cols-2 gap-px bg-gray-800/30">
           {stateFields.map((s) => (
             <div key={s.field} className="px-4 py-3 bg-[#0F172A] hover:bg-white/[0.02] transition-colors">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-0.5">
                 <code className="text-xs font-mono text-cyan-400">{s.field}</code>
                 <span className={cn('text-[9px] px-1.5 py-0.5 rounded font-bold',
                   s.rw === 'RW' ? 'bg-amber-500/15 text-amber-400' : s.rw === 'W' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-500/15 text-gray-400'
                 )}>{s.rw}</span>
               </div>
-              <div className="text-[10px] text-gray-500">{s.agents.join(' · ')}</div>
+              <div className="text-[10px] text-gray-500 mb-0.5">{s.desc}</div>
+              <div className="text-[10px] text-gray-600">{s.agents.join(' · ')}</div>
             </div>
           ))}
         </div>
@@ -450,7 +451,17 @@ function SafetyLoopSection() {
 }
 
 /* ═══ Navbar ═══ */
-function AboutNavbar({ onNavigate }: { onNavigate: (id: string) => void }) {
+const NAV_LINKS = [
+  { id: 'architecture', label: '系统架构' },
+  { id: 'skills', label: 'Skill 机制' },
+  { id: 'agents', label: '核心 Agent' },
+  { id: 'state', label: 'State 图谱' },
+  { id: 'tools', label: '工具链路' },
+  { id: 'safety', label: '审核闭环' },
+  { id: 'config', label: '配置指南' },
+]
+
+function AboutNavbar({ onNavigate, activeSection }: { onNavigate: (id: string) => void; activeSection: string }) {
   const [scrolled, setScrolled] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -460,23 +471,17 @@ function AboutNavbar({ onNavigate }: { onNavigate: (id: string) => void }) {
     container.addEventListener('scroll', handler, { passive: true })
     return () => container.removeEventListener('scroll', handler)
   }, [])
-  const links = [
-    { id: 'architecture', label: '系统架构' },
-    { id: 'skills', label: 'Skill 机制' },
-    { id: 'agents', label: '核心 Agent' },
-    { id: 'state', label: 'State 图谱' },
-    { id: 'tools', label: '工具链路' },
-    { id: 'safety', label: '审核闭环' },
-    { id: 'config', label: '配置指南' },
-  ]
   return (
     <nav ref={containerRef} className={cn('sticky top-0 z-40 transition-all duration-300 border-b',
       scrolled ? 'bg-gray-900/80 backdrop-blur-xl border-gray-700/50 shadow-lg shadow-black/20' : 'bg-transparent border-transparent')}>
       <div className="max-w-6xl mx-auto flex items-center justify-between px-6 h-14">
         <span className="font-bold text-base text-white tracking-tight">Smart CS</span>
         <div className="hidden md:flex items-center gap-5">
-          {links.map((item) => (
-            <button key={item.id} onClick={() => onNavigate(item.id)} className="text-[11px] text-gray-400 hover:text-white transition-colors font-medium">{item.label}</button>
+          {NAV_LINKS.map((item) => (
+            <button key={item.id} onClick={() => onNavigate(item.id)}
+              className={cn('text-[11px] font-medium transition-colors',
+                activeSection === item.id ? 'text-blue-400' : 'text-gray-400 hover:text-white'
+              )}>{item.label}</button>
           ))}
         </div>
       </div>
@@ -491,6 +496,9 @@ export function AboutPage() {
   const setActiveView = useStore((s) => s.setActiveView)
   const revealRef = useScrollReveal()
   const [activeArchNode, setActiveArchNode] = useState<string | null>(null)
+  const [activeSection, setActiveSection] = useState('')
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const isScrollingRef = useRef(false)
 
   // Sequential node highlight on scroll into view
   const archRef = useRef<HTMLDivElement>(null)
@@ -516,18 +524,84 @@ export function AboutPage() {
     return () => observer.disconnect()
   }, [])
 
-  const scrollTo = useCallback((id: string) => {
-    const el = document.getElementById(`about-${id}`)
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  // Track active section via IntersectionObserver
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    const sectionIds = NAV_LINKS.map(l => `about-${l.id}`)
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const id = entry.target.id.replace('about-', '')
+            setActiveSection(id)
+          }
+        })
+      },
+      { root: container, threshold: 0.4 }
+    )
+    sectionIds.forEach((id) => {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    })
+    return () => observer.disconnect()
   }, [])
 
+  // Full-page scroll snap: wheel event snaps to next/prev section
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    const allSectionIds = ['about-hero', ...NAV_LINKS.map(l => `about-${l.id}`), 'about-footer']
+
+    const handleWheel = (e: WheelEvent) => {
+      if (isScrollingRef.current) { e.preventDefault(); return }
+      // Only snap on significant scroll
+      if (Math.abs(e.deltaY) < 30) return
+
+      const sections = allSectionIds.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[]
+      const containerTop = container.scrollTop
+      const vh = container.clientHeight
+
+      // Find current section index
+      let currentIdx = 0
+      for (let i = 0; i < sections.length; i++) {
+        if (sections[i].offsetTop <= containerTop + vh * 0.4) currentIdx = i
+      }
+
+      const nextIdx = e.deltaY > 0
+        ? Math.min(currentIdx + 1, sections.length - 1)
+        : Math.max(currentIdx - 1, 0)
+
+      if (nextIdx !== currentIdx) {
+        e.preventDefault()
+        isScrollingRef.current = true
+        sections[nextIdx].scrollIntoView({ behavior: 'smooth', block: 'start' })
+        setTimeout(() => { isScrollingRef.current = false }, 800)
+      }
+    }
+
+    container.addEventListener('wheel', handleWheel, { passive: false })
+    return () => container.removeEventListener('wheel', handleWheel)
+  }, [])
+
+  const scrollTo = useCallback((id: string) => {
+    const el = document.getElementById(`about-${id}`)
+    if (!el) return
+    isScrollingRef.current = true
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setTimeout(() => { isScrollingRef.current = false }, 800)
+  }, [])
+
+  /* shared section class: 100vh full-page, content centered */
+  const sectionCls = 'min-h-[100vh] flex flex-col justify-center px-6 py-16'
+
   return (
-    <div className="about-dark h-full overflow-y-auto bg-[#0F172A] text-gray-100">
+    <div ref={scrollContainerRef} className="about-dark h-full overflow-y-auto bg-[#0F172A] text-gray-100">
       <div ref={revealRef}>
-        <AboutNavbar onNavigate={scrollTo} />
+        <AboutNavbar onNavigate={scrollTo} activeSection={activeSection} />
 
         {/* ═══ Hero ═══ */}
-        <section className="relative min-h-[85vh] flex flex-col items-center justify-center px-6 overflow-hidden">
+        <section id="about-hero" className="relative min-h-[100vh] flex flex-col items-center justify-center px-6 overflow-hidden">
           <div className="absolute inset-0 opacity-[0.04]" style={{
             backgroundImage: 'linear-gradient(#475569 1px, transparent 1px), linear-gradient(90deg, #475569 1px, transparent 1px)',
             backgroundSize: '60px 60px',
@@ -554,8 +628,8 @@ export function AboutPage() {
         </section>
 
         {/* ═══ Architecture with State R/W ═══ */}
-        <section id="about-architecture" className="py-24 px-6" ref={archRef}>
-          <div className="max-w-6xl mx-auto">
+        <section id="about-architecture" className={sectionCls} ref={archRef}>
+          <div className="max-w-6xl mx-auto w-full">
             <SectionHeading tag="Core Architecture" tagColor="text-blue-400" title="系统架构 · State 状态流转" desc="7 个节点由 LangGraph StateGraph 编排。每个节点的 Read/Write 标注展示了数据在全局 State 中的流转路径。" />
             <div className="about-scale-reveal">
               <ArchitectureDiagram activeNode={activeArchNode} />
@@ -564,26 +638,26 @@ export function AboutPage() {
         </section>
 
         {/* ═══ Skill System ═══ */}
-        <section id="about-skills" className="py-24 px-6 bg-white/[0.02]">
-          <div className="max-w-5xl mx-auto">
+        <section id="about-skills" className={cn(sectionCls, 'bg-white/[0.02]')}>
+          <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="The Skill System" tagColor="text-amber-400" title="Skill = 系统的灵魂" desc="Brand Personality Injection — 5 个子模块贯穿 Solver / Generator / Reviewer，修改一个 Markdown 文件即可切换品牌人格。" />
             <SkillSection />
           </div>
         </section>
 
         {/* ═══ Agent Cards ═══ */}
-        <section id="about-agents" className="py-24 px-6">
-          <div className="max-w-5xl mx-auto">
+        <section id="about-agents" className={sectionCls}>
+          <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="The Agents" tagColor="text-emerald-400" title="四大核心 Agent" desc="每个 Agent 是 LangGraph 图中的一个节点，由 NodeFactory 通过依赖注入创建。" />
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
               {AGENTS.map((agent, i) => (
-                <div key={agent.name} className="about-reveal rounded-xl border border-gray-700/50 bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-gray-600/50 transition-all group" style={{ animationDelay: `${i * 100}ms` }}>
+                <div key={agent.name} className="about-reveal rounded-xl border border-gray-700/50 bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-gray-600/50 transition-all group flex flex-col" style={{ animationDelay: `${i * 100}ms` }}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110" style={{ backgroundColor: `${agent.color}15`, border: `1px solid ${agent.color}30` }}>
                     <agent.icon className="w-5 h-5" style={{ color: agent.color }} />
                   </div>
                   <h3 className="text-base font-bold text-white mb-1.5">{agent.name}</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed mb-3">{agent.desc}</p>
-                  <code className="text-[10px] font-mono text-cyan-400/60 bg-white/[0.04] px-2 py-0.5 rounded">{agent.code}</code>
+                  <p className="text-xs text-gray-400 leading-relaxed mb-3 flex-1">{agent.desc}</p>
+                  <code className="text-[10px] font-mono text-cyan-400/60 bg-white/[0.04] px-2 py-0.5 rounded self-start">{agent.code}</code>
                 </div>
               ))}
             </div>
@@ -591,40 +665,40 @@ export function AboutPage() {
         </section>
 
         {/* ═══ Module A: Global State Graph ═══ */}
-        <section id="about-state" className="py-24 px-6 bg-white/[0.02]">
-          <div className="max-w-5xl mx-auto">
+        <section id="about-state" className={cn(sectionCls, 'bg-white/[0.02]')}>
+          <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="Global State Graph" tagColor="text-indigo-400" title="全局 State 状态图谱" desc="全流程可追溯 — CustomerServiceState 中的每个字段都有明确的读写归属，消除黑盒。" />
             <StateGraphSection />
           </div>
         </section>
 
         {/* ═══ Module B: Tool & RAG Pipeline ═══ */}
-        <section id="about-tools" className="py-24 px-6">
-          <div className="max-w-5xl mx-auto">
+        <section id="about-tools" className={sectionCls}>
+          <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="Tool & RAG Pipeline" tagColor="text-emerald-400" title="工具调用与知识库检索链路" desc="不幻觉、有依据 — Solver 通过 ReAct 循环按需调用 12 个工具，每个决策都有数据支撑。" />
             <ToolPipelineSection />
           </div>
         </section>
 
         {/* ═══ Module C: Zero-Code Config ═══ */}
-        <section id="about-pipeline" className="py-24 px-6 bg-white/[0.02]">
-          <div className="max-w-5xl mx-auto">
+        <section id="about-pipeline" className={cn(sectionCls, 'bg-white/[0.02]')}>
+          <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="Zero-Code Config Pipeline" tagColor="text-blue-400" title="前端配置 → 后端生效链路" desc="运营人员在 Settings 页面修改 Prompt / 参数，实时覆盖后端默认模板，零代码上线。" />
             <ConfigPipelineSection />
           </div>
         </section>
 
         {/* ═══ Module D: Safety Loop ═══ */}
-        <section id="about-safety" className="py-24 px-6">
-          <div className="max-w-5xl mx-auto">
+        <section id="about-safety" className={sectionCls}>
+          <div className="max-w-5xl mx-auto w-full">
             <SectionHeading tag="The Safety Loop" tagColor="text-pink-400" title="审核反馈闭环" desc="三重审核 + 自动重写 + 人工兜底 — 确保每封邮件都经过事实、合规、品牌调性的严格检查。" />
             <SafetyLoopSection />
           </div>
         </section>
 
         {/* ═══ Config Guide ═══ */}
-        <section id="about-config" className="py-24 px-6 bg-white/[0.02]">
-          <div className="max-w-3xl mx-auto">
+        <section id="about-config" className={cn(sectionCls, 'bg-white/[0.02]')}>
+          <div className="max-w-3xl mx-auto w-full">
             <SectionHeading tag="Config Guide" tagColor="text-cyan-400" title="为可观测性与可定制性而生" desc="Built for Observability & Hackability" />
             <div className="space-y-3 about-reveal">
               {CONFIG_SECTIONS.map((section) => (
@@ -635,7 +709,7 @@ export function AboutPage() {
         </section>
 
         {/* ═══ Footer ═══ */}
-        <footer className="border-t border-gray-800/50 py-10 px-6">
+        <footer id="about-footer" className="border-t border-gray-800/50 py-10 px-6">
           <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-xs text-gray-500">Smart CS v4.0 — React 19 + FastAPI + LangGraph StateGraph</div>
             <div className="flex items-center gap-4">
