@@ -11,6 +11,7 @@ import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { AboutPage } from '@/pages/AboutPage'
 import { SkillsPage } from '@/pages/SkillsPage'
+import { ToolsPage } from '@/pages/ToolsPage'
 import { useStore } from '@/store/useStore'
 import { fetchHealth, fetchInfo, fetchPrompts } from '@/lib/api'
 
@@ -36,6 +37,8 @@ function AppContent() {
       return <AboutPage />
     case 'skills':
       return <SkillsPage />
+    case 'tools':
+      return <ToolsPage />
     default:
       return <ComposePage />
   }

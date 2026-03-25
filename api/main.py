@@ -226,6 +226,51 @@ async def get_l1_table():
     return {"table": skill_registry_ref.build_l1_table()}
 
 
+# ─── Tools Registry API (read-only) ─────────
+
+from smart_customer_service.tool_registry import TOOL_DESCRIPTIONS, _TOOL_DISPATCH
+
+
+@app.get("/api/tools")
+async def list_tools():
+    """List all registered tools with name, description, and category."""
+    tools = []
+    for name, desc in TOOL_DESCRIPTIONS.items():
+        # Categorize tools
+        if name in ("load_skill", "load_skill_section"):
+            category = "skill"
+        elif name == "知识检索工具":
+            category = "knowledge"
+        elif "订单" in name or "拆单" in name:
+            category = "order"
+        elif "物流" in name:
+            category = "logistics"
+        elif "库存" in name:
+            category = "inventory"
+        elif "SKU" in name or "产品" in name or "ASIN" in name or "官网" in name:
+            category = "product"
+        elif "邮箱" in name:
+            category = "account"
+        elif "品牌" in name or "渠道" in name:
+            category = "channel"
+        else:
+            category = "other"
+
+        # Extract params hint from description
+        params_hint = ""
+        if "参数:" in desc:
+            params_hint = desc.split("参数:")[-1].strip()
+
+        tools.append({
+            "name": name,
+            "description": desc,
+            "category": category,
+            "params": params_hint,
+            "registered": name in _TOOL_DISPATCH,
+        })
+    return {"tools": tools, "total": len(tools)}
+
+
 # ─── Reply Processing ─────────────────────────
 
 def _generate_thread_id(req) -> str:
