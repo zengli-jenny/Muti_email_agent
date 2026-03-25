@@ -159,6 +159,63 @@ https://github.com/user-attachments/assets/47fa9129-eb8b-4343-a1c4-31e18bac5505
 
 ---
 
+## Skills 渐进式披露架构
+
+v4.0 移除了独立 Router Agent 和品牌 Skill 文件（ohuhu.md / tribit.md），改为 **渐进式技能披露（Progressive Skill Disclosure）** 架构。Solver 通过 `load_skill` 工具按需加载标准处理流程，平均节省 60–80% token。
+
+### 三层结构
+
+```
+L1  始终注入 Solver（~750 tokens）
+    15个技能的 ID / 触发条件 / 一句话说明
+    ↓ Solver 识别意图 → load_skill(skill_id)
+
+L2  场景分支判断表（~200–400 tokens）
+    告诉模型当前邮件属于哪个具体场景，以及该加载哪个 L3 章节
+    ↓ Solver 对照表 → load_skill_section(skill_id, section)
+
+L3  单场景执行细节（~500–2,000 tokens）
+    话术模板、判断逻辑、边界条件，只加载命中的那一个章节
+```
+
+### 技能注册表
+
+```
+skills/
+└── skill_registry.json  # 15 个技能的 L1/L2/L3 配置
+```
+
+每个技能在 `skill_registry.json` 中定义 ID、触发条件、对应的标准流程文件和 L3 章节列表。Solver 运行时通过工具调用逐层加载。
+
+### Solver 执行路径示例（待跟进邮件）
+
+```
+第1轮：load_skill("followup")
+       → 获取 L2 场景分支表
+
+第2轮：load_skill_section("followup", "售后处理类跟进")
+       → 获取具体话术（上一封已执行退款，跟进到账）
+
+第3轮：generate_reply
+       → 生成跟进邮件
+```
+
+### Token 对比
+
+| | 旧架构 | 新架构 |
+|--|--------|--------|
+| Router 调用 | ~3,500 tokens | 0 |
+| 简单问题 | ~5,000 tokens | ~1,200 tokens |
+| 复杂问题 | ~14,500 tokens | ~2,500 tokens |
+
+### 新增特性（v4.1）
+
+- **并行工具调用**：Solver 可一次输出多个 `tool_calls`，`tool_executor` 通过 `asyncio.gather` 并行执行
+- **向量检索 RAG**：Chroma + BM25 混合检索（RRF 融合），Embedding 使用百炼 `text-embedding-v4`
+- **状态持久化**：LangGraph `AsyncSqliteSaver` 存储到 `data/checkpoints.db`，支持 `thread_id` 会话恢复
+
+---
+
 ## 项目结构
 
 ```
@@ -398,63 +455,6 @@ data: {"node": "__done__"}
 ### `GET /prompts` — 获取默认提示词
 
 返回 4 个 Agent 的系统提示词（Router / Solver / Generator / Reviewer）。
-
----
-
-## Skills 渐进式披露架构
-
-v4.0 移除了独立 Router Agent 和品牌 Skill 文件（ohuhu.md / tribit.md），改为 **渐进式技能披露（Progressive Skill Disclosure）** 架构。Solver 通过 `load_skill` 工具按需加载标准处理流程，平均节省 60–80% token。
-
-### 三层结构
-
-```
-L1  始终注入 Solver（~750 tokens）
-    15个技能的 ID / 触发条件 / 一句话说明
-    ↓ Solver 识别意图 → load_skill(skill_id)
-
-L2  场景分支判断表（~200–400 tokens）
-    告诉模型当前邮件属于哪个具体场景，以及该加载哪个 L3 章节
-    ↓ Solver 对照表 → load_skill_section(skill_id, section)
-
-L3  单场景执行细节（~500–2,000 tokens）
-    话术模板、判断逻辑、边界条件，只加载命中的那一个章节
-```
-
-### 技能注册表
-
-```
-skills/
-└── skill_registry.json  # 15 个技能的 L1/L2/L3 配置
-```
-
-每个技能在 `skill_registry.json` 中定义 ID、触发条件、对应的标准流程文件和 L3 章节列表。Solver 运行时通过工具调用逐层加载。
-
-### Solver 执行路径示例（待跟进邮件）
-
-```
-第1轮：load_skill("followup")
-       → 获取 L2 场景分支表
-
-第2轮：load_skill_section("followup", "售后处理类跟进")
-       → 获取具体话术（上一封已执行退款，跟进到账）
-
-第3轮：generate_reply
-       → 生成跟进邮件
-```
-
-### Token 对比
-
-| | 旧架构 | 新架构 |
-|--|--------|--------|
-| Router 调用 | ~3,500 tokens | 0 |
-| 简单问题 | ~5,000 tokens | ~1,200 tokens |
-| 复杂问题 | ~14,500 tokens | ~2,500 tokens |
-
-### 新增特性（v4.1）
-
-- **并行工具调用**：Solver 可一次输出多个 `tool_calls`，`tool_executor` 通过 `asyncio.gather` 并行执行
-- **向量检索 RAG**：Chroma + BM25 混合检索（RRF 融合），Embedding 使用百炼 `text-embedding-v4`
-- **状态持久化**：LangGraph `AsyncSqliteSaver` 存储到 `data/checkpoints.db`，支持 `thread_id` 会话恢复
 
 ---
 

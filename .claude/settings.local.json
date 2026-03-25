@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "Bash(ls d:/project/Muti_email_agent-feature-architecture-refactor-v2/*.md)",
+      "Bash(conda env:*)"
+    ]
+  }
+}
