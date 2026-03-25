@@ -1,6 +1,6 @@
 import {
   PenSquare, Clock, Settings, Plus,
-  LayoutDashboard, FileText, Layers, Keyboard, Info,
+  LayoutDashboard, FileText, Layers, Keyboard, Info, BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore, type View } from '@/store/useStore'
@@ -10,7 +10,8 @@ const NAV_ITEMS: { key: View; label: string; icon: typeof PenSquare; group?: str
   { key: 'dashboard', label: '控制台', icon: LayoutDashboard },
   { key: 'templates', label: '邮件模板', icon: FileText, group: '工具' },
   { key: 'batch', label: '批量处理', icon: Layers },
-  { key: 'history', label: '历史记录', icon: Clock, group: '管理' },
+  { key: 'skills', label: '技能注册表', icon: BookOpen, group: '管理' },
+  { key: 'history', label: '历史记录', icon: Clock },
   { key: 'settings', label: '设置', icon: Settings },
   { key: 'about', label: '系统介绍', icon: Info },
 ]

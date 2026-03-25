@@ -10,6 +10,7 @@ import { BatchPage } from '@/pages/BatchPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { AboutPage } from '@/pages/AboutPage'
+import { SkillsPage } from '@/pages/SkillsPage'
 import { useStore } from '@/store/useStore'
 import { fetchHealth, fetchInfo, fetchPrompts } from '@/lib/api'
 
@@ -33,6 +34,8 @@ function AppContent() {
       return <SettingsPage />
     case 'about':
       return <AboutPage />
+    case 'skills':
+      return <SkillsPage />
     default:
       return <ComposePage />
   }

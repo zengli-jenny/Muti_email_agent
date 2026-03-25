@@ -30,13 +30,13 @@ class CustomerServiceState(TypedDict, total=False):
 
     # ── Context loading ──
     memory_facts: list[str]
-    skill_profile: dict
     detected_language: str
 
-    # ── Routing ──
+    # ── Skill selection (replaces router) ──
+    skill_table: str          # L1 table injected by load_context
     basic_info: dict
-    selected_policy: str
-    policy_content: str
+    selected_policy: str      # skill file name, set when solver calls load_skill
+    policy_content: str       # accumulated L2/L3 content as skills are loaded
 
     # ── Knowledge retrieval ──
     retrieved_knowledge: str
@@ -46,7 +46,7 @@ class CustomerServiceState(TypedDict, total=False):
     react_iteration: int
     max_react_iterations: int
     solver_decision: str          # "call_tool" | "generate_reply" | "need_human"
-    pending_tool_call: dict       # {name, params}
+    pending_tool_calls: list[dict]  # [{name, params}, ...] — supports parallel tool execution
     tool_results: Annotated[dict, _merge_dicts]
 
     # ── Reply generation ──

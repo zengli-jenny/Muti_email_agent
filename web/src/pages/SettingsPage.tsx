@@ -8,15 +8,13 @@ import { toast } from '@/components/Toast'
 import { FullscreenPromptEditor } from '@/components/FullscreenPromptEditor'
 
 const PROMPT_TABS = [
-  { key: 'router', label: 'Router' },
   { key: 'solver', label: 'Solver' },
   { key: 'reply_generator', label: 'Generator' },
   { key: 'reviewer', label: 'Reviewer' },
 ] as const
 
 const THINKING_NODES = [
-  { key: 'router', label: 'Router 路由', sub: '邮件意图分析与流程匹配' },
-  { key: 'solver', label: 'Solver 推理', sub: 'ReAct 循环，工具调用与决策' },
+  { key: 'solver', label: 'Solver 推理', sub: 'ReAct 循环，技能选择、工具调用与决策' },
   { key: 'reply_generator', label: 'Generator 生成', sub: '格式化草稿为专业邮件' },
   { key: 'reviewer', label: 'Reviewer 审核', sub: '事实准确性、合规性、品牌调性检查' },
 ]
@@ -28,7 +26,7 @@ export function SettingsPage() {
     setSystemOnline,
   } = useStore()
 
-  const [activeTab, setActiveTab] = useState<string>('router')
+  const [activeTab, setActiveTab] = useState<string>('solver')
   const [promptValue, setPromptValue] = useState('')
   const [isDefault, setIsDefault] = useState(true)
   const [connectionTesting, setConnectionTesting] = useState(false)

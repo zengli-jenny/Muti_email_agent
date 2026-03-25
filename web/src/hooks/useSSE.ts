@@ -3,17 +3,15 @@ import { useStore, emptyFullState, type ChainNode, type FullState, type ConvMess
 import { type ReplyPayload, type ResumePayload, type SSEEvent, type SSETokenEvent, getApiUrl } from '@/lib/api'
 
 const NODE_META: Record<string, { type: string; title: string; sub: string }> = {
-  load_context: { type: 'context', title: 'ContextLoader 上下文', sub: '加载客户记忆、品牌技能、语言检测' },
-  router: { type: 'router', title: 'Router 路由', sub: '分析邮件意图，匹配标准流程' },
-  solver: { type: 'solver', title: 'Solver 推理', sub: 'ReAct 循环：思考 → 决策 → 工具调用' },
-  tool_executor: { type: 'tool', title: '工具执行', sub: '调用 TCS API / 知识库检索' },
+  load_context: { type: 'context', title: 'ContextLoader 上下文', sub: '加载客户记忆、品牌技能、语言检测、技能注册表' },
+  solver: { type: 'solver', title: 'Solver 推理', sub: 'ReAct 循环：技能选择 → 工具调用 → 决策' },
+  tool_executor: { type: 'tool', title: '工具执行', sub: '调用 TCS API / 知识库检索 / 加载技能流程' },
   reply_generator: { type: 'generator', title: 'Generator 生成', sub: '格式化草稿为专业邮件' },
   reviewer: { type: 'reviewer', title: 'Reviewer 审核', sub: '事实准确性、合规性、品牌调性检查' },
   finalize: { type: 'done', title: '完成', sub: '流程结束' },
 }
 
 const STREAM_LABELS: Record<string, { thinking: string; content: string }> = {
-  router: { thinking: '思维链 (Thinking)', content: 'LLM 输出' },
   solver: { thinking: '思维链 (Thinking)', content: 'LLM 输出' },
   reply_generator: { thinking: '思维链 (Thinking)', content: '邮件生成中...' },
   reviewer: { thinking: '思维链 (Thinking)', content: '审核输出' },
@@ -31,7 +29,7 @@ function buildBlocks(nodeName: string, event: SSEEvent) {
     }
   }
 
-  if (nodeName === 'router' && event.basic_info && Object.keys(event.basic_info).length > 0) {
+  if (nodeName === 'load_context' && event.basic_info && Object.keys(event.basic_info).length > 0) {
     const rows = Object.entries(event.basic_info)
       .map(([k, v]) => `${k}: ${String(v || '')}`)
       .join('\n')
@@ -41,7 +39,11 @@ function buildBlocks(nodeName: string, event: SSEEvent) {
   if (nodeName === 'solver' && event.thought_history) {
     event.thought_history.forEach((th) => {
       if (th.thought) blocks.push({ label: '推理过程', content: th.thought, type: 'thought' })
-      if (th.action) blocks.push({ label: '决策', content: th.action, type: 'data' })
+      if (th.action) {
+        // Highlight skill loading actions
+        const isSkillLoad = th.action.includes('load_skill')
+        blocks.push({ label: isSkillLoad ? '加载技能流程' : '决策', content: th.action, type: 'data' })
+      }
     })
   }
 
@@ -250,8 +252,8 @@ async function readSSEStream(
 
       // Node done — replace streaming blocks with final blocks
       let sub = meta.sub
-      if (nodeName === 'router' && event.selected_policy) {
-        sub = `匹配策略: ${event.selected_policy}`
+      if (nodeName === 'solver' && event.selected_policy) {
+        sub = `已加载技能: ${event.selected_policy}`
       } else if (nodeName === 'solver' && event.solver_decision === 'call_tool') {
         const tn = event.thought_history?.[0]?.action?.replace('调用工具: ', '').split('(')[0] || ''
         sub = `决策: 调用工具 ${tn}`
@@ -403,6 +405,7 @@ export function useSSE() {
             old_emails: payload.old_emails,
             basic_info: fullState.basic_info,
             selected_policy: fullState.selected_policy,
+            policy_content: fullState.policy_content,
             detected_language: fullState.detected_language,
             retrieved_knowledge: fullState.retrieved_knowledge,
             thought_history: fullState.thought_history as Array<Record<string, unknown>>,
@@ -474,7 +477,7 @@ export function useSSE() {
       solverCountRef.current = 0
 
       const nodeConfig: Record<string, Record<string, unknown>> = {}
-      const thinkingNodes = ['router', 'solver', 'reply_generator', 'reviewer']
+      const thinkingNodes = ['solver', 'reply_generator', 'reviewer']
       thinkingNodes.forEach((node) => {
         nodeConfig[node] = {
           enable_thinking: settings.thinking[node] ?? false,

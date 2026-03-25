@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from smart_customer_service.tcs_client import TCSClient
+
+if TYPE_CHECKING:
+    from smart_customer_service.skill_registry import SkillRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +19,15 @@ class ToolRegistry:
     def __init__(self, tcs_client: TCSClient) -> None:
         self.tcs = tcs_client
         self._knowledge_search_fn = None  # set externally after init
+        self._skill_registry: "SkillRegistry | None" = None  # set externally after init
 
     def set_knowledge_search(self, fn: Any) -> None:
         """Inject the knowledge retriever search function."""
         self._knowledge_search_fn = fn
+
+    def set_skill_registry(self, registry: "SkillRegistry") -> None:
+        """Inject the skill registry for load_skill tool."""
+        self._skill_registry = registry
 
     async def call(self, name: str, params: dict[str, Any]) -> dict[str, Any]:
         """Execute a tool by its Chinese name. Returns the API result dict."""
@@ -94,6 +102,22 @@ class ToolRegistry:
             return {"status": "error", "message": "知识检索未初始化"}
         return self._knowledge_search_fn(p.get("query", ""), p.get("brand", ""), p.get("product_model"), top_k=5)
 
+    async def _load_skill(self, p: dict) -> Any:
+        """Load a skill at L2 or L3 level from the skill registry."""
+        if self._skill_registry is None:
+            return {"status": "error", "message": "技能注册表未初始化"}
+        skill_id = p.get("skill_id", "")
+        level = int(p.get("level", 2))
+        return self._skill_registry.load_skill(skill_id, level)
+
+    async def _load_skill_section(self, p: dict) -> Any:
+        """Load a specific L3 section of a skill."""
+        if self._skill_registry is None:
+            return {"status": "error", "message": "技能注册表未初始化"}
+        skill_id = p.get("skill_id", "")
+        section = p.get("section", "")
+        return self._skill_registry.load_skill_section(skill_id, section)
+
 
 # ── Dispatch table (Chinese name → method) ──
 
@@ -110,6 +134,8 @@ _TOOL_DISPATCH = {
     "TSM客服邮箱查询工具": ToolRegistry._query_email_account,
     "通过品牌查询渠道": ToolRegistry._query_channel_by_brand,
     "知识检索工具": ToolRegistry._knowledge_search,
+    "load_skill": ToolRegistry._load_skill,
+    "load_skill_section": ToolRegistry._load_skill_section,
 }
 
 
@@ -170,5 +196,16 @@ TOOL_DESCRIPTIONS: dict[str, str] = {
     "知识检索工具": (
         "搜索产品FAQ知识库获取常见问题解答。适用于产品使用问题、功能咨询、兼容性查询等。"
         "参数: {query: str（搜索关键词）, brand?: str（品牌名称）, product_model?: str（产品型号）}"
+    ),
+    "load_skill": (
+        "【必须首先调用】根据 skill_id 加载标准处理流程内容。"
+        "level=2（默认）加载核心规则（总纲），level=3 加载完整流程。"
+        "调用后将流程内容注入到当前处理上下文中。"
+        "参数: {skill_id: str（来自 Skill 注册表的 ID）, level?: int（2 或 3，默认 2）}"
+    ),
+    "load_skill_section": (
+        "加载某个标准处理流程的特定章节（L3 级别）。"
+        "当 load_skill(level=2) 的内容不足以处理当前问题时，按需加载具体步骤章节。"
+        "参数: {skill_id: str, section: str（章节名称，如 'Step 3'、'换货条件判断流程'）}"
     ),
 }

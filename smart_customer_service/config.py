@@ -30,6 +30,16 @@ class AppConfig:
     knowledge_full_file: Path = field(default_factory=lambda: Path(""))
     policy_dir: Path = field(default_factory=lambda: Path(""))
     policy_routing_file: Path = field(default_factory=lambda: Path(""))
+    skill_registry_file: Path = field(default_factory=lambda: Path(""))
+
+    # Embedding / Vector RAG
+    embedding_base_url: str = ""
+    embedding_api_key: str = ""
+    embedding_model: str = "text-embedding-v4"
+    chroma_persist_dir: Path = field(default_factory=lambda: Path(""))
+
+    # Checkpoint persistence
+    checkpoint_db: Path = field(default_factory=lambda: Path(""))
 
     # ReAct configuration
     max_react_iterations: int = 7
@@ -65,6 +75,14 @@ class AppConfig:
             knowledge_full_file=Path(os.getenv("KNOWLEDGE_BASE_PATH", str(data_dir / "knowledge_base_full.json"))),
             policy_dir=Path(os.getenv("POLICY_DIR", str(resolved_base / "标准流程"))),
             policy_routing_file=resolved_base / "政策路由.md",
+            skill_registry_file=resolved_base / "skills" / "skill_registry.json",
+            # Embedding / Vector RAG (defaults to same base_url/api_key as LLM)
+            embedding_base_url=os.getenv("EMBEDDING_BASE_URL", os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")),
+            embedding_api_key=os.getenv("EMBEDDING_API_KEY", os.getenv("LLM_API_KEY", "")),
+            embedding_model=os.getenv("EMBEDDING_MODEL", "text-embedding-v4"),
+            chroma_persist_dir=Path(os.getenv("CHROMA_PERSIST_DIR", str(data_dir / "chroma_db"))),
+            # Checkpoint persistence
+            checkpoint_db=Path(os.getenv("CHECKPOINT_DB_PATH", str(data_dir / "checkpoints.db"))),
             # ReAct
             max_react_iterations=int(os.getenv("MAX_REACT_ITERATIONS", "7")),
             max_reflections=int(os.getenv("MAX_REFLECTIONS", "2")),

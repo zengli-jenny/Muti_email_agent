@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type View = 'compose' | 'history' | 'settings' | 'dashboard' | 'templates' | 'batch' | 'about'
+export type View = 'compose' | 'history' | 'settings' | 'dashboard' | 'templates' | 'batch' | 'about' | 'skills'
 
 export interface ChainNode {
   id: string
@@ -18,6 +18,7 @@ export interface FullState {
   tool_results: Record<string, unknown>
   basic_info: Record<string, unknown>
   selected_policy: string
+  policy_content: string
   retrieved_knowledge: string
   detected_language: string
   review_passed: boolean
@@ -165,6 +166,7 @@ export const emptyFullState = (): FullState => ({
   tool_results: {},
   basic_info: {},
   selected_policy: '',
+  policy_content: '',
   retrieved_knowledge: '',
   detected_language: 'en',
   review_passed: false,
@@ -281,8 +283,8 @@ export const useStore = create<AppState>()(
         temperature: 0.1,
         maxReactIterations: 7,
         maxReflections: 2,
-        thinking: { router: true, solver: true, reply_generator: false, reviewer: false },
-        thinkingBudgets: { router: 600, solver: 600, reply_generator: 600, reviewer: 600 },
+        thinking: { solver: true, reply_generator: false, reviewer: false },
+        thinkingBudgets: { solver: 600, reply_generator: 600, reviewer: 600 },
         apiUrl: 'http://127.0.0.1:8001',
       },
       updateSettings: (s) =>

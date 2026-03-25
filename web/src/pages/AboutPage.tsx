@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { ArrowDown, Zap, Brain, Mail, ShieldCheck, GitFork, ChevronDown, ExternalLink, Search, Database, Globe, Settings, CheckCircle, UserCheck } from 'lucide-react'
+import { ArrowDown, Zap, Brain, Mail, ShieldCheck, ChevronDown, ExternalLink, Search, Database, Globe, Settings, CheckCircle, UserCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
 
@@ -72,12 +72,10 @@ function Accordion({ title, items }: { title: string; items: { what: string; whe
 
 const ARCH_NODES = [
   { id: 'ctx', label: 'Load Context', sub: '上下文加载', x: 400, y: 50, color: '#6366F1',
-    read: ['OldEmail (原始邮件)'], write: ['old_email', 'skill_profile', 'detected_language', 'customer_memory', 'policy_routing_rules'] },
-  { id: 'router', label: 'Router', sub: '意图识别与路由', x: 400, y: 170, color: '#8B5CF6',
-    read: ['old_email', 'policy_routing_rules'], write: ['basic_info (结构化)', 'selected_policy'] },
-  { id: 'solver', label: 'Solver', sub: 'ReAct 推理引擎', x: 400, y: 310, color: '#F59E0B',
-    read: ['selected_policy', 'skill_profile', 'old_email', 'tool_list', 'review_feedback'], write: ['solver_thoughts', 'tool_results', 'reply_draft'] },
-  { id: 'tool', label: 'Tool Executor', sub: '工具执行 / 知识检索', x: 700, y: 310, color: '#10B981',
+    read: ['OldEmail (原始邮件)'], write: ['skill_profile', 'detected_language', 'customer_memory', 'skill_table (L1)'] },
+  { id: 'solver', label: 'Solver', sub: 'ReAct + 技能选择', x: 400, y: 200, color: '#F59E0B',
+    read: ['skill_table (L1)', 'skill_profile', 'old_email', 'tool_list', 'review_feedback'], write: ['selected_policy', 'solver_thoughts', 'tool_results', 'reply_draft'] },
+  { id: 'tool', label: 'Tool Executor', sub: '工具执行 / 技能加载 / 知识检索', x: 700, y: 200, color: '#10B981',
     read: ['solver 工具调用指令'], write: ['tool_results'] },
   { id: 'gen', label: 'Generator', sub: '邮件生成', x: 400, y: 450, color: '#3B82F6',
     read: ['reply_draft', 'skill_profile', 'detected_language'], write: ['final_reply_draft'] },
@@ -101,28 +99,30 @@ const BRAND_DATA: Record<string, Record<string, string>> = {
 }
 
 const AGENTS = [
-  { name: 'Router', icon: GitFork, color: '#8B5CF6', desc: '识别客诉场景，提取关键信息，匹配标准处理流程。', code: 'ROUTER_SYSTEM' },
-  { name: 'Solver', icon: Brain, color: '#F59E0B', desc: 'ReAct 推理核心：思考 → 决策 → 工具调用 / 生成回复 / 转人工。', code: 'SOLVER_SYSTEM' },
+  { name: 'Solver', icon: Brain, color: '#F59E0B', desc: 'ReAct 推理核心：识别意图 → 调用 load_skill 加载流程 → 工具调用 / 生成回复 / 转人工。', code: 'SOLVER_SYSTEM' },
   { name: 'Generator', icon: Mail, color: '#3B82F6', desc: '将草稿格式化为完整客服邮件，控制称呼、语气与签名。', code: 'REPLY_GENERATOR_SYSTEM' },
   { name: 'Reviewer', icon: ShieldCheck, color: '#EC4899', desc: '审核事实一致性、方案合规性、品牌调性，不合格则打回重写。', code: 'REVIEWER_SYSTEM' },
 ]
 
 const CONFIG_SECTIONS = [
   { title: '改 Prompt', items: [
-    { what: 'Router 意图识别指令', where: 'prompt_templates.py → ROUTER_SYSTEM' },
-    { what: 'Solver ReAct 行为原则', where: 'prompt_templates.py → SOLVER_SYSTEM' },
+    { what: 'Solver ReAct 行为原则 + 技能选择', where: 'prompt_templates.py → SOLVER_SYSTEM' },
     { what: 'Generator 邮件格式化', where: 'prompt_templates.py → REPLY_GENERATOR_SYSTEM' },
     { what: 'Reviewer 审核维度', where: 'prompt_templates.py → REVIEWER_SYSTEM' },
   ]},
-  { title: '改 Skill', items: [
+  { title: '改 Skill 注册表', items: [
+    { what: 'L1 触发条件 / 一句话说明', where: 'skills/skill_registry.json（或 UI 技能注册表页面）' },
+    { what: 'L2 核心规则章节名', where: 'skills/skill_registry.json → l2_section' },
+    { what: 'L3 可按需加载章节', where: 'skills/skill_registry.json → l3_sections' },
+  ]},
+  { title: '改品牌 Skill', items: [
     { what: '品牌语气 / 称呼 / 规则', where: 'skills/ohuhu.md 或 skills/tribit.md' },
     { what: '新增品牌', where: 'skills/{brand}.md（新建文件）' },
     { what: 'Skill 解析逻辑', where: 'skills.py → _parse_markdown()' },
   ]},
   { title: '改流程', items: [
-    { what: '路由规则', where: '政策路由.md' },
-    { what: '处理步骤', where: '标准流程/*.md（15 个文件）' },
-    { what: '新增流程', where: '标准流程/xxx.md + 政策路由.md' },
+    { what: '处理步骤（L2/L3 内容）', where: '标准流程/*.md（15 个文件，或 UI 技能注册表页面）' },
+    { what: '新增流程', where: '标准流程/xxx.md + skills/skill_registry.json' },
   ]},
   { title: '改工具', items: [
     { what: '工具名称 / 描述', where: 'tool_registry.py → TOOL_DESCRIPTIONS' },
@@ -270,8 +270,9 @@ function StateGraphSection() {
   const stateFields = [
     { field: 'customer_email', desc: '客户原始邮件内容', rw: 'R', agents: ['Load Context'] },
     { field: 'skill_profile', desc: '品牌人格配置文件', rw: 'RW', agents: ['Load Context', 'Solver', 'Generator', 'Reviewer'] },
-    { field: 'basic_info', desc: '邮件提取的结构化基础信息', rw: 'W', agents: ['Router'] },
-    { field: 'selected_policy', desc: '匹配的标准处理流程', rw: 'RW', agents: ['Router', 'Solver', 'Reviewer'] },
+    { field: 'skill_table', desc: 'L1 技能注册表（始终注入 Solver）', rw: 'W', agents: ['Load Context'] },
+    { field: 'selected_policy', desc: '已加载的标准处理流程文件名', rw: 'W', agents: ['Solver', 'Tool Executor'] },
+    { field: 'policy_content', desc: '已加载的 L2/L3 流程内容（累积）', rw: 'RW', agents: ['Tool Executor', 'Solver', 'Reviewer'] },
     { field: 'thought_history', desc: 'Solver 推理思考历史', rw: 'W', agents: ['Solver'] },
     { field: 'tool_results', desc: '工具调用 / 知识库检索返回结果', rw: 'RW', agents: ['Tool Executor', 'Solver', 'Reviewer'] },
     { field: 'draft_reply', desc: 'Solver 生成的回复草稿', rw: 'RW', agents: ['Solver', 'Generator'] },

@@ -44,6 +44,7 @@ export interface ResumePayload {
   old_emails?: string
   basic_info?: Record<string, unknown>
   selected_policy?: string
+  policy_content?: string
   detected_language?: string
   retrieved_knowledge?: string
   thought_history?: Array<Record<string, unknown>>

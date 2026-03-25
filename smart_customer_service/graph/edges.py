@@ -11,7 +11,11 @@ def decide_solver_next(state: CustomerServiceState) -> str:
     max_iter = state.get("max_react_iterations", 7)
     if iteration >= max_iter:
         return "need_human"
-    return state.get("solver_decision", "need_human")
+    decision = state.get("solver_decision", "need_human")
+    # Also check pending_tool_calls as a fallback signal
+    if decision == "call_tool" and not state.get("pending_tool_calls"):
+        return "need_human"
+    return decision
 
 
 def decide_review_result(state: CustomerServiceState) -> str:
