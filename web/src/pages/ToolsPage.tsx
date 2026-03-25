@@ -152,8 +152,8 @@ export function ToolsPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 p-6 gap-5">
-      {/* Header */}
+    <div className="h-full overflow-y-auto p-4 md:p-6">
+      <div className="max-w-5xl mx-auto space-y-5">
       <div className="shrink-0">
         <div className="flex items-center justify-between">
           <div>
@@ -221,7 +221,7 @@ export function ToolsPage() {
       </div>
 
       {/* Tool list */}
-      <div className="flex-1 overflow-y-auto space-y-6 min-h-0">
+      <div className="space-y-6">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-text-tertiary">
             <Search className="w-6 h-6 opacity-40 mb-2" />
@@ -254,6 +254,7 @@ export function ToolsPage() {
             )
           })
         )}
+      </div>
       </div>
     </div>
   )
